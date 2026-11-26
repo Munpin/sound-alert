@@ -114,12 +114,11 @@ python train/check_session.py data/raw/knock_1126_s02_desk_phone.wav --expect 10
 - 노크: 자르기만 하면 12개. 3번(67.71초, +24.4 dB, 2.19초)·4번(70.86초, +18.5 dB)은 노크보다 작고(진짜 노크 최소 +27.6 dB) 모양이 다름 → 그림을 보고 `--drop 3,4`로 other 처리 → 10개
 - `--drop` 옵션 추가: 그림을 보고 잘못 잡힌 구간 번호를 other로 돌린다. 기준값(`--margin`)으로 빼기엔 노크와 차이가 2~3 dB라 불안정해서.
 - 출력: `docs/logs/session_check_real_1126.txt`, 그림: `docs/figures/session_check_doorbell_1126.png`, `docs/figures/session_check_knock_1126.png`
-- meta.csv에 두 파일 줄이 아직 없음 (스크립트 알림)
+- meta.csv: 두 회차 줄을 직접 적어 넣음(배경 fan, 휴대폰 상태 desk, note에 확인 옵션 기록) → 스크립트 meta 확인 통과
 
 **녹음 방법 메모**: 혼자 녹음하면 앞뒤에 나가고 들어오는 소리가 들어간다 → 확인할 때 `--skip-start 20 --skip-end 12` 정도로 잘라 낸다(그림에서 위치 확인).
 
 ## 다음 할 일
-- meta.csv에 오늘 두 회차 줄 붙여 넣기 (녹음 페이지 '저장 기록 → 전체 복사')
 - 설계서 7절 다음 단계 진행 (다음 단계 문서를 받으면)
 
 ## 남은 문제
