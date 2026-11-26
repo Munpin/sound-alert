@@ -166,7 +166,8 @@ python train/check_session.py data/raw/knock_1126_s02_desk_phone.wav --expect 10
 - WebGPU 불일치: 문서 규칙대로 고치지 않고 보고함. 기본은 wasm이라 1단계 완료 기준에는 영향 없음
 - 화면 버그: 실시간 확률 막대가 빈 칸으로 보임(막대 요소가 inline이라 너비 무시) → `display:block` 추가. 숫자와 측정에는 영향 없음
 - 캡처: `docs/figures/phone_model_test_wasm_1126.png`, `docs/figures/phone_model_test_realtime_1126.png`, `docs/figures/phone_model_test_webgpu_1126.png`
-- 미확인: "0.5초마다 확률이 바뀐다"는 결과 파일에 확률 기록이 없어 파일로는 확인 못 함 (실행 32번·건너뜀 0번은 확인)
+- "0.5초마다 확률이 바뀐다": 결과 파일에는 확률 기록이 없어(실행 32번·건너뜀 0번만 기록), 막대 수정 후 휴대폰에서 다시 열어 사용자가 눈으로 확인 → 6개 막대가 움직임 (2026-11-26). 이후 결과 파일에 실행마다 확률도 저장되게 바꿈
+- **1단계-3 완료 기준 4개 모두 통과 (wasm)**
 
 ## 다음 할 일
 - 설계서 7절 다음 단계 진행 (다음 단계 문서를 받으면)
