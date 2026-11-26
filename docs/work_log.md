@@ -118,7 +118,7 @@ python train/check_session.py data/raw/knock_1126_s02_desk_phone.wav --expect 10
 
 **녹음 방법 메모**: 혼자 녹음하면 앞뒤에 나가고 들어오는 소리가 들어간다 → 확인할 때 `--skip-start 20 --skip-end 12` 정도로 잘라 낸다(그림에서 위치 확인).
 
-### 5. 휴대폰 안에서 모델 실행 확인 (1단계-3, PC 부분 완료 · 휴대폰 확인 대기)
+### 5. 휴대폰 안에서 모델 실행 확인 (1단계-3)
 
 **무엇을**: 전처리(멜 변환)까지 넣은 임시 모델(학습 안 함)을 ONNX로 내보내 휴대폰 크롬에서 돌린다. 확인: 내보내기, PyTorch와 결과 일치, 1회 100 ms 이하.
 
@@ -143,7 +143,30 @@ python train/check_session.py data/raw/knock_1126_s02_desk_phone.wav --expect 10
 - PC 크롬(화면 없음) wasm: 고정 입력 4개 통과(최대 1.96e-05), 평균 20.5 ms, p95 30.3 ms, 첫 실행 65.4 ms, 모델 불러오기 737.6 ms, 1스레드
 - PC 크롬 WebGPU: 모델은 불러왔으나 실행에서 응답 없음 → 미확인 (화면 없는 크롬에는 실제 GPU 없음)
 
-**휴대폰에서 할 일**: `model-test.html`에서 1·2·3 실행 → 결과 파일 저장 → `?ep=webgpu`로 다시 열어 1·2 → 결과 파일 저장 → 두 json을 `data/raw/`로
+**배포 실패와 해결**
+- push 후 배포가 실패: 묶음(`github-pages`, 17,493,747 바이트)은 올라갔는데 `deploy-pages`가 "No artifacts named github-pages"로 못 찾음. 다시 실행(3번째 시도)해도 같음
+- 액션 버전을 올림(configure-pages v6, upload-pages-artifact v5, deploy-pages v5) → 같은 오류. GitHub 상태는 정상
+- 원인: 올리기와 배포를 같은 작업(job)에 두면 배포가 방금 올린 묶음을 못 찾는 deploy-pages 버그 (actions/deploy-pages issue #451)
+- 해결: `.github/workflows/pages.yml`을 build 작업과 deploy 작업(needs: build) 둘로 나눔 → 성공. 배포 방식(web/ 폴더만 Pages)은 그대로
+
+**휴대폰 결과** (S24 Ultra SM-S928N, Android 16.0.0, Chrome 158.0.8127.42, CPU 코어 8, 1스레드)
+- 원본: `data/raw/model_test_1126/` (결과 json 2개, 캡처 4장). 복사본: `docs/logs/model_test_phone_wasm_1126.json`, `docs/logs/model_test_phone_webgpu_1126.json`
+
+| 항목 | wasm (기본) | WebGPU (비교용) |
+| --- | --- | --- |
+| 모델 불러오기 | 3845.4 ms (내려받기 1490.5 + 세션 2354.9) | 3963.7 ms (내려받기 50.7 + 세션 3913.0) |
+| 첫 실행 | 40 ms | 552.9 ms |
+| 고정 입력 최대 차이 | silence 2.28e-06, sine 1.92e-06, noise 7.45e-08, chirp 1.96e-05 → **4개 통과** | silence 1.82e-06, sine 5.09e-03, noise 1.79e-02, chirp 4.18e-03 → **3개 실패** |
+| 100번 평균 / p50 / p95 | **8.87 / 8.7 / 9.3 ms** | 9.32 / 8.1 / 12.6 ms |
+| 최소 / 최대 | 8.5 / 15.6 ms | 5.7 / 26.2 ms |
+| 마이크 실시간 | 32번 실행, 평균 21.68 ms, p95 25 ms, 최대 26.6 ms, 건너뜀 0번 (브라우저 16 kHz 변환) | 시험 안 함 |
+
+- wasm 내려받기 1490.5 ms는 첫 방문(캐시 없음), WebGPU 쪽 50.7 ms는 같은 파일을 다시 받은 것이라 빠름
+- 실시간 평균(21.7 ms)이 100번 측정(8.9 ms)보다 큰 이유: 마이크 처리와 화면 그리기가 같은 시간에 돎 (추정, 미확인)
+- WebGPU 불일치: 문서 규칙대로 고치지 않고 보고함. 기본은 wasm이라 1단계 완료 기준에는 영향 없음
+- 화면 버그: 실시간 확률 막대가 빈 칸으로 보임(막대 요소가 inline이라 너비 무시) → `display:block` 추가. 숫자와 측정에는 영향 없음
+- 캡처: `docs/figures/phone_model_test_wasm_1126.png`, `docs/figures/phone_model_test_realtime_1126.png`, `docs/figures/phone_model_test_webgpu_1126.png`
+- 미확인: "0.5초마다 확률이 바뀐다"는 결과 파일에 확률 기록이 없어 파일로는 확인 못 함 (실행 32번·건너뜀 0번은 확인)
 
 ## 다음 할 일
 - 설계서 7절 다음 단계 진행 (다음 단계 문서를 받으면)

@@ -25,7 +25,7 @@
   .bar { display:flex; align-items:center; gap:8px; margin:4px 0; font-size:.9rem; }
   .bar .name { width:72px; } .bar .val { width:48px; text-align:right; font-variant-numeric:tabular-nums; }
   .bar .track { flex:1; height:16px; background:#e8ecf1; border-radius:4px; overflow:hidden; }
-  .bar .fill { height:100%; width:0; background:var(--accent); transition:width .15s; }
+  .bar .fill { display:block; height:100%; width:0; background:var(--accent); transition:width .15s; }
   a { color:var(--accent); }
 </style>
 </head>
@@ -216,6 +216,7 @@ $('speedBtn').onclick = async () => {
 let mic = null, timer = null, busy = false;
 const ring = new Float32Array(N); let written = 0;
 const rtTimes = [];
+const rtProbs = [];   // 실행마다 6종 확률 (0.5초마다 바뀌는지 결과 파일로 확인)
 const wake = new ScreenWakeLock(() => {});
 
 function pushChunk(c) {
@@ -234,12 +235,13 @@ async function tick() {
   try {
     const { probs, ms: t } = await run(lastTwoSeconds());
     rtTimes.push(t);
+    rtProbs.push(probs.map((v) => +v.toFixed(4))); if (rtProbs.length > 600) rtProbs.shift();
     probs.forEach((p, i) => { $(`fill${i}`).style.width = (p * 100).toFixed(1) + '%'; $(`val${i}`).textContent = p.toFixed(3); });
     const s = stats(rtTimes);
     $('rtNow').textContent = ms(t); $('rtAvg').textContent = ms(s.mean);
     $('rtInfo').textContent = `실행 ${s.n}번 · p95 ${ms(s.p95)} ms · 최대 ${ms(s.max)} ms · 건너뜀 ${result.realtimeSkipped || 0}번`;
     $('micStatus').textContent = `듣는 중 (${mic.methodLabel})`;
-    result.realtime = { ...s, skipped: result.realtimeSkipped || 0, method: mic.method, timesMs: rtTimes.slice(-600) };
+    result.realtime = { ...s, skipped: result.realtimeSkipped || 0, method: mic.method, timesMs: rtTimes.slice(-600), probs: rtProbs.slice() };
   } finally { busy = false; }
 }
 $('micBtn').onclick = async () => {
@@ -250,7 +252,7 @@ $('micBtn').onclick = async () => {
   try {
     mic = await openMicrophone({ onChunk: pushChunk });
     result.mic = { settings: mic.settings, method: mic.method, methodLabel: mic.methodLabel };
-    written = 0; rtTimes.length = 0; result.realtimeSkipped = 0;
+    written = 0; rtTimes.length = 0; rtProbs.length = 0; result.realtimeSkipped = 0;
     timer = setInterval(tick, 500);
     await wake.on();
     $('micBtn').textContent = '마이크 끄기';

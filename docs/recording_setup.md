@@ -50,7 +50,8 @@
 | 비교용 백엔드 | WebGPU: `ort.webgpu.min.mjs` + `ort-wasm-simd-threaded.asyncify.{mjs,wasm}` (시험 페이지 `?ep=webgpu`) |
 | 스레드 | GitHub Pages는 crossOriginIsolated가 아니라 wasm 멀티스레드를 못 씀 → 1스레드 |
 | 시험 페이지 | https://munpin.github.io/sound-alert/model-test.html |
-| 휴대폰 결과 (S24 Ultra) | ⏳ 1단계-3 확인 후 채움 |
+| 휴대폰 결과 (S24 Ultra, 2026-11-26) | **wasm 사용.** 고정 입력 4개 통과(최대 차이 1.96e-05), 평균 8.87 ms, p95 9.3 ms (`docs/logs/model_test_phone_wasm_1126.json`) |
+| WebGPU (비교용) | 고정 입력 4개 중 3개 실패(최대 차이 1.79e-02), 평균 9.32 ms → 쓰지 않음 (`docs/logs/model_test_phone_webgpu_1126.json`) |
 
 ## 4. 파일 이름과 메타데이터
 
