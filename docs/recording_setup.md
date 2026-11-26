@@ -63,6 +63,7 @@
 | 그림 | | `docs/figures/check_recording_1126.png` (출력: `docs/logs/check_recording_1126.txt`) |
 
 확인 녹음: `other_1126_s01_desk_phone.wav` (2026-11-26 19:17, 조용히 → 박수 6번 → 휴대폰 알림음). 시험용이라 데이터에는 넣지 않는다.
+배경에 컴퓨터 팬 소음이 있었다: 박수 전 0~2.7초 평균 스펙트럼에서 62 Hz 칸이 주변보다 +19.1 dB (FFT 칸 폭 31 Hz).
 
 ![확인 녹음 스펙트로그램](figures/check_recording_1126.png)
 
