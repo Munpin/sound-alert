@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>소리 알림 · 모델 시험</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --text:#1b1f24; --muted:#5d6670; --line:#dde1e6; --ok:#1a7f37; --bad:#c62828; --accent:#1f5fbf; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.45 system-ui,-apple-system,"Noto Sans KR",sans-serif; }
+  main { max-width:560px; margin:0 auto; padding:12px 12px 48px; }
+  h1 { font-size:1.25rem; margin:6px 0 4px; }
+  h2 { font-size:1rem; margin:0 0 10px; }
+  section { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:12px; }
+  button { font:inherit; font-weight:600; border:0; border-radius:10px; padding:12px 16px; background:var(--accent); color:#fff; cursor:pointer; width:100%; }
+  button.secondary { background:#e8ecf1; color:var(--text); }
+  button:disabled { opacity:.4; }
+  .row { display:flex; gap:8px; margin-top:8px; } .row > * { flex:1; }
+  .muted { color:var(--muted); font-size:.9rem; }
+  table { width:100%; border-collapse:collapse; font-size:.9rem; }
+  td, th { padding:5px 4px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; word-break:break-all; }
+  th { color:var(--muted); font-weight:600; }
+  .ok { color:var(--ok); font-weight:700; } .bad { color:var(--bad); font-weight:700; }
+  .big { font-size:1.6rem; font-weight:700; font-variant-numeric:tabular-nums; }
+  .bar { display:flex; align-items:center; gap:8px; margin:4px 0; font-size:.9rem; }
+  .bar .name { width:72px; } .bar .val { width:48px; text-align:right; font-variant-numeric:tabular-nums; }
+  .bar .track { flex:1; height:16px; background:#e8ecf1; border-radius:4px; overflow:hidden; }
+  .bar .fill { height:100%; width:0; background:var(--accent); transition:width .15s; }
+  a { color:var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>모델 시험 (1단계-3)</h1>
+  <div class="muted">학습하지 않은 임시 모델입니다. 확률 값 자체는 의미가 없습니다. <a href="./">← 녹음 페이지</a></div>
+
+  <section style="margin-top:12px">
+    <h2>0. 실행 환경</h2>
+    <table id="envTable"></table>
+    <div class="row">
+      <button id="switchBtn" class="secondary"></button>
+    </div>
+  </section>
+
+  <section>
+    <h2>1. 고정 입력 비교 (PyTorch와 차이 0.001 이하면 통과)</h2>
+    <button id="fixBtn" disabled>비교 실행</button>
+    <table id="fixTable" style="margin-top:8px"></table>
+  </section>
+
+  <section>
+    <h2>2. 속도 측정 (같은 입력 100번)</h2>
+    <button id="speedBtn" disabled>측정 실행</button>
+    <table id="speedTable" style="margin-top:8px"></table>
+  </section>
+
+  <section>
+    <h2>3. 마이크 실시간 (0.5초마다 최근 2초)</h2>
+    <button id="micBtn" disabled>마이크 켜기</button>
+    <div id="micStatus" class="muted" style="margin-top:6px"></div>
+    <div id="bars" style="margin-top:8px"></div>
+    <div class="row"><div>이번 실행 <span id="rtNow" class="big">-</span> ms</div><div>평균 <span id="rtAvg" class="big">-</span> ms</div></div>
+    <div id="rtInfo" class="muted"></div>
+  </section>
+
+  <section>
+    <h2>4. 결과 저장</h2>
+    <div class="muted">결과를 json 파일로 내려받아 PC의 data/raw/로 옮겨 주세요.</div>
+    <div class="row">
+      <button id="saveBtn" class="secondary">결과 파일 저장</button>
+      <button id="copyBtn" class="secondary">결과 복사</button>
+    </div>
+  </section>
+</main>
+
+<script type="module">
+import { openMicrophone, TARGET_RATE } from './audio-input.js';
+import { ScreenWakeLock } from './recorder.js';
+
+const $ = (id) => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+const EP = params.get('ep') === 'webgpu' ? 'webgpu' : 'wasm';
+const MODEL_URL = './models/temp_model.onnx';
+const N = 32000;
+
+const result = {
+  page: 'model-test', time: new Date().toISOString(), url: location.href,
+  backend: EP, onnxruntime_web: '1.31.1', device: {}, env: {},
+};
+
+function rowsHtml(rows) { return rows.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join(''); }
+function stats(arr) {
+  const s = [...arr].sort((a, b) => a - b);
+  const mean = s.reduce((a, b) => a + b, 0) / s.length;
+  const p = (q) => s[Math.min(s.length - 1, Math.ceil(q * s.length) - 1)];
+  return { n: s.length, mean, p50: p(0.5), p95: p(0.95), min: s[0], max: s[s.length - 1] };
+}
+const ms = (v) => v.toFixed(1);
+
+async function deviceInfo() {
+  const info = { userAgent: navigator.userAgent, hardwareConcurrency: navigator.hardwareConcurrency };
+  try {
+    const h = await navigator.userAgentData.getHighEntropyValues(['model', 'platform', 'platformVersion', 'fullVersionList']);
+    info.model = h.model; info.platform = `${h.platform} ${h.platformVersion}`;
+    const c = (h.fullVersionList || []).find((b) => /Chrome|Chromium/.test(b.brand));
+    if (c) info.chrome = c.version;
+  } catch (_) {}
+  return info;
+}
+
+function decodeF32(b64) {
+  const bin = atob(b64); const u8 = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  return new Float32Array(u8.buffer);
+}
+
+let ort, session, fixtures, classes;
+
+async function init() {
+  $('switchBtn').textContent = EP === 'wasm' ? 'WebGPU로 다시 열기 (비교용)' : 'wasm(기본)으로 다시 열기';
+  $('switchBtn').onclick = () => { location.search = EP === 'wasm' ? '?ep=webgpu' : ''; };
+  result.device = await deviceInfo();
+
+  const envRows = [['실행 백엔드', EP === 'wasm' ? 'wasm (WebAssembly, 기본)' : 'WebGPU (비교용)']];
+  try {
+    ort = await import(EP === 'wasm' ? './vendor/ort.wasm.min.mjs' : './vendor/ort.webgpu.min.mjs');
+    ort.env.wasm.wasmPaths = new URL('./vendor/', location.href).href;
+
+    const fx = await fetch('./test/fixtures.json'); fixtures = await fx.json();
+    classes = fixtures.classes;
+
+    if (EP === 'webgpu' && !navigator.gpu) throw new Error('이 브라우저에서 WebGPU(navigator.gpu)를 쓸 수 없음');
+    const t0 = performance.now();
+    const buf = await (await fetch(MODEL_URL)).arrayBuffer();
+    const t1 = performance.now();
+    session = await ort.InferenceSession.create(buf, { executionProviders: [EP], graphOptimizationLevel: 'all' });
+    const t2 = performance.now();
+
+    result.env = {
+      crossOriginIsolated: self.crossOriginIsolated, wasmNumThreads: ort.env.wasm.numThreads ?? null,
+      modelBytes: buf.byteLength, modelFetchMs: t1 - t0, sessionCreateMs: t2 - t1, modelLoadMs: t2 - t0,
+      inputNames: session.inputNames, outputNames: session.outputNames,
+    };
+    envRows.push(
+      ['onnxruntime-web', '1.31.1 (web/vendor/)'],
+      ['모델 파일', `${(buf.byteLength / 1e6).toFixed(2)} MB`],
+      ['모델 불러오기', `${ms(t2 - t0)} ms (내려받기 ${ms(t1 - t0)} + 세션 만들기 ${ms(t2 - t1)})`],
+      ['crossOriginIsolated', `${self.crossOriginIsolated} ${self.crossOriginIsolated ? '' : '(멀티스레드 불가 → 1스레드)'}`],
+      ['CPU 코어 수', navigator.hardwareConcurrency],
+    );
+    $('fixBtn').disabled = false; $('speedBtn').disabled = false; $('micBtn').disabled = EP !== 'wasm';
+    if (EP !== 'wasm') $('micStatus').textContent = '마이크 실시간은 wasm(기본)에서만 시험합니다.';
+  } catch (e) {
+    envRows.push(['오류', `<span class="bad">${e && e.message ? e.message : e}</span>`]);
+    result.env.error = String(e && e.message ? e.message : e);
+  }
+  if (result.device.model) envRows.push(['기종', result.device.model]);
+  if (result.device.platform) envRows.push(['OS', result.device.platform]);
+  if (result.device.chrome) envRows.push(['Chrome', result.device.chrome]);
+  $('envTable').innerHTML = rowsHtml(envRows);
+  $('bars').innerHTML = (classes || []).map((c, i) =>
+    `<div class="bar"><span class="name">${c}</span><span class="track"><span class="fill" id="fill${i}"></span></span><span class="val" id="val${i}">-</span></div>`).join('');
+}
+
+async function run(x) {
+  const t = new ort.Tensor('float32', x, [1, N]);
+  const t0 = performance.now();
+  const out = await session.run({ waveform: t });
+  const t1 = performance.now();
+  return { probs: Array.from(out.probs.data), ms: t1 - t0 };
+}
+
+// ---------- 1. 고정 입력 비교 ----------
+$('fixBtn').onclick = async () => {
+  $('fixBtn').disabled = true;
+  const rows = [], res = [];
+  for (const f of fixtures.fixtures) {
+    const x = decodeF32(f.samples_b64);
+    const { probs, ms: t } = await run(x);
+    const diff = Math.max(...probs.map((p, i) => Math.abs(p - f.torch_probs[i])));
+    const pass = diff <= 1e-3;
+    res.push({ name: f.name, maxAbsDiff: diff, pass, probs, ms: t });
+    rows.push([f.name, `<span class="${pass ? 'ok' : 'bad'}">${diff.toExponential(2)} ${pass ? '통과' : '실패'}</span>`]);
+  }
+  const all = res.every((r) => r.pass);
+  rows.push(['전체', `<span class="${all ? 'ok' : 'bad'}">${all ? '4개 모두 통과' : '실패 있음'} (최대 ${Math.max(...res.map((r) => r.maxAbsDiff)).toExponential(2)})</span>`]);
+  $('fixTable').innerHTML = rowsHtml(rows);
+  result.fixtures = res;
+  $('fixBtn').disabled = false;
+};
+
+// ---------- 2. 속도 ----------
+$('speedBtn').onclick = async () => {
+  $('speedBtn').disabled = true;
+  const x = decodeF32(fixtures.fixtures.find((f) => f.name.startsWith('chirp')).samples_b64);
+  $('speedTable').innerHTML = rowsHtml([['진행', '측정 중…']]);
+  const first = result.firstRunMs ?? null;
+  const times = [];
+  for (let i = 0; i < 100; i++) {
+    times.push((await run(x)).ms);
+    if (i % 10 === 9) $('speedTable').innerHTML = rowsHtml([['진행', `${i + 1} / 100`]]);
+  }
+  const s = stats(times);
+  result.speed = { input: 'chirp_200_6000', runs: 100, ...s, timesMs: times, firstRunMs: first };
+  const pass = s.mean <= 100;
+  $('speedTable').innerHTML = rowsHtml([
+    ['첫 실행 (모델 불러온 뒤 처음)', first === null ? '-' : `${ms(first)} ms`],
+    ['평균 (100번)', `<span class="${pass ? 'ok' : 'bad'}">${ms(s.mean)} ms ${pass ? '(100 ms 이하)' : '(100 ms 초과!)'}</span>`],
+    ['중앙값 / 상위 5%(p95)', `${ms(s.p50)} / ${ms(s.p95)} ms`],
+    ['최소 / 최대', `${ms(s.min)} / ${ms(s.max)} ms`],
+  ]);
+  $('speedBtn').disabled = false;
+};
+
+// ---------- 3. 마이크 실시간 ----------
+let mic = null, timer = null, busy = false;
+const ring = new Float32Array(N); let written = 0;
+const rtTimes = [];
+const wake = new ScreenWakeLock(() => {});
+
+function pushChunk(c) {
+  for (let i = 0; i < c.length; i++) ring[(written + i) % N] = c[i];
+  written += c.length;
+}
+function lastTwoSeconds() {
+  const out = new Float32Array(N), start = written % N;
+  out.set(ring.subarray(start)); out.set(ring.subarray(0, start), N - start);
+  return out;
+}
+async function tick() {
+  if (busy) { result.realtimeSkipped = (result.realtimeSkipped || 0) + 1; return; }
+  if (written < N) { $('micStatus').textContent = `2초 모으는 중… ${(written / TARGET_RATE).toFixed(1)}초`; return; }
+  busy = true;
+  try {
+    const { probs, ms: t } = await run(lastTwoSeconds());
+    rtTimes.push(t);
+    probs.forEach((p, i) => { $(`fill${i}`).style.width = (p * 100).toFixed(1) + '%'; $(`val${i}`).textContent = p.toFixed(3); });
+    const s = stats(rtTimes);
+    $('rtNow').textContent = ms(t); $('rtAvg').textContent = ms(s.mean);
+    $('rtInfo').textContent = `실행 ${s.n}번 · p95 ${ms(s.p95)} ms · 최대 ${ms(s.max)} ms · 건너뜀 ${result.realtimeSkipped || 0}번`;
+    $('micStatus').textContent = `듣는 중 (${mic.methodLabel})`;
+    result.realtime = { ...s, skipped: result.realtimeSkipped || 0, method: mic.method, timesMs: rtTimes.slice(-600) };
+  } finally { busy = false; }
+}
+$('micBtn').onclick = async () => {
+  if (mic) {
+    clearInterval(timer); timer = null; await mic.stop(); mic = null; await wake.off();
+    $('micBtn').textContent = '마이크 켜기'; $('micStatus').textContent = '꺼짐'; return;
+  }
+  try {
+    mic = await openMicrophone({ onChunk: pushChunk });
+    result.mic = { settings: mic.settings, method: mic.method, methodLabel: mic.methodLabel };
+    written = 0; rtTimes.length = 0; result.realtimeSkipped = 0;
+    timer = setInterval(tick, 500);
+    await wake.on();
+    $('micBtn').textContent = '마이크 끄기';
+  } catch (e) {
+    $('micStatus').textContent = '마이크를 켜지 못함: ' + (e && e.message ? e.message : e);
+  }
+};
+
+// ---------- 4. 저장 ----------
+function resultText() { return JSON.stringify(result, null, 1); }
+$('saveBtn').onclick = () => {
+  const blob = new Blob([resultText()], { type: 'application/json' });
+  const a = document.createElement('a');
+  const stamp = new Date().toISOString().slice(5, 16).replace(/[-:T]/g, '');
+  a.href = URL.createObjectURL(blob); a.download = `model_test_${EP}_${stamp}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+};
+$('copyBtn').onclick = async () => {
+  try { await navigator.clipboard.writeText(resultText()); $('copyBtn').textContent = '복사됨'; }
+  catch (_) { $('copyBtn').textContent = '복사 실패'; }
+  setTimeout(() => { $('copyBtn').textContent = '결과 복사'; }, 1200);
+};
+
+// 첫 실행 시간: 모델을 불러온 직후 한 번 따로 잰다
+await init();
+if (session) {
+  const x = decodeF32(fixtures.fixtures[0].samples_b64);
+  result.firstRunMs = (await run(x)).ms;
+  $('speedTable').innerHTML = rowsHtml([['첫 실행 (모델 불러온 뒤 처음)', `${ms(result.firstRunMs)} ms`]]);
+}
+</script>
+</body>
+</html>

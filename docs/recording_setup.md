@@ -41,6 +41,17 @@
 
 방식 2의 PC 시험 결과(Node, 사인파 넣기): 48 kHz 입력 기준 6 kHz까지 0 dB, 7 kHz −2.6 dB, 7.6 kHz −21 dB. 8 kHz 위 소리가 접혀 들어오는 성분(앨리어싱)은 −87 dB 이하.
 
+## 3-1. 모델 실행 (onnxruntime-web)
+
+| 항목 | 값 |
+| --- | --- |
+| onnxruntime-web | **1.31.1** (npm, MIT). `web/vendor/`에 넣어 씀 (인터넷 CDN 안 씀, 나중 오프라인 동작용) |
+| 기본 백엔드 | wasm (WebAssembly): `ort.wasm.min.mjs` + `ort-wasm-simd-threaded.{mjs,wasm}` |
+| 비교용 백엔드 | WebGPU: `ort.webgpu.min.mjs` + `ort-wasm-simd-threaded.asyncify.{mjs,wasm}` (시험 페이지 `?ep=webgpu`) |
+| 스레드 | GitHub Pages는 crossOriginIsolated가 아니라 wasm 멀티스레드를 못 씀 → 1스레드 |
+| 시험 페이지 | https://munpin.github.io/sound-alert/model-test.html |
+| 휴대폰 결과 (S24 Ultra) | ⏳ 1단계-3 확인 후 채움 |
+
 ## 4. 파일 이름과 메타데이터
 
 - 파일 이름: `클래스_날짜_회차_장소_기기.wav` (예: `doorbell_1126_s01_desk_phone.wav`)

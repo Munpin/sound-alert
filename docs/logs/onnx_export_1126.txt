@@ -1,0 +1,16 @@
+# python train/export_onnx.py  (실행: 2026-11-26 20:57)
+torch 2.15.0+cu132, 클래스 ['doorbell', 'knock', 'baby_cry', 'siren', 'horn', 'other']
+[전처리] 파워 스펙트럼 모양 (1, 201, 201), torch.stft와 최대 상대 차이 1.68e-06
+[전처리] 로그 멜 모양 (1, 1, 64, 201) → 멜 64개 × 시간 프레임 201개
+[모델] 파라미터 1,524,006개
+[내보내기] web\models\temp_model.onnx (TorchScript 방식 (dynamo=False), opset 17, 0.9초)
+[내보내기] 파일 크기 6,812,310 바이트 (6.81 MB)
+[ONNX] opset ['ai.onnx:17'], 입력 [('waveform', [1, 32000])], 출력 [('probs', [0, 6])]
+[ONNX] 쓰인 연산 30종: Add, Cast, Clip, Concat, Constant, ConstantOfShape, Conv, Div, Equal, Expand, Flatten, Gemm, GlobalAveragePool, HardSigmoid, HardSwish, Log, MatMul, Mul, Pad, Pow, ReduceMean, Relu, Reshape, Slice, Softmax, Sqrt, Sub, Transpose, Unsqueeze, Where
+[onnxruntime] Python onnxruntime 1.31.0
+  silence                PyTorch [0.2012 0.1716 0.1197 0.1834 0.134  0.1901]  최대 차이 1.33e-06
+  sine_1khz              PyTorch [0.2367 0.1868 0.088  0.1421 0.1334 0.213 ]  최대 차이 1.18e-06
+  white_noise_seed1234   PyTorch [0.2426 0.182  0.1045 0.1569 0.1447 0.1694]  최대 차이 2.83e-07
+  chirp_200_6000         PyTorch [0.2194 0.2031 0.1158 0.1252 0.1441 0.1924]  최대 차이 2.38e-05
+[onnxruntime] 고정 입력 4개 최대 절대 차이 2.38e-05
+[저장] web\test\fixtures.json (683,935 바이트)

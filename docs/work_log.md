@@ -118,6 +118,33 @@ python train/check_session.py data/raw/knock_1126_s02_desk_phone.wav --expect 10
 
 **녹음 방법 메모**: 혼자 녹음하면 앞뒤에 나가고 들어오는 소리가 들어간다 → 확인할 때 `--skip-start 20 --skip-end 12` 정도로 잘라 낸다(그림에서 위치 확인).
 
+### 5. 휴대폰 안에서 모델 실행 확인 (1단계-3, PC 부분 완료 · 휴대폰 확인 대기)
+
+**무엇을**: 전처리(멜 변환)까지 넣은 임시 모델(학습 안 함)을 ONNX로 내보내 휴대폰 크롬에서 돌린다. 확인: 내보내기, PyTorch와 결과 일치, 1회 100 ms 이하.
+
+**정한 것 (사용자 결정)**
+- onnxruntime-web 1.31.1을 `web/vendor/`에 넣음 (CDN 안 씀). wasm용 약 15 MB + WebGPU 비교용 약 29 MB = 42 MB
+- PyTorch GPU판: torch 2.15.0+cu132, torchvision 0.29.2+cu132 (드라이버 610.62, CUDA 13.3까지 지원 → cu132). onnx 1.23.2, onnxscript
+  - 처음에 cu130/cu129/cu128/cu126 주소로 설치 시도 → 2.15.0이 없어 실패. 목록 확인 결과 2.15.0은 cu132·cu134만 있음
+- 설정 파일: `train/config.json` (JSON, 라이브러리 추가 없음)
+
+**만든 파일**
+- `train/config.json`: 클래스, 음량(목표 −20, 하한 −50 dBFS), STFT(창 400, 간격 160), 멜 64개 0~8 kHz, 로그 정규화 임시값(평균 −50, 표준편차 20)
+- `train/model.py`: 음량 정규화 → 합성곱 STFT(고정 DFT 가중치, 양 끝 200개 0 채움) → 멜 행렬곱 → dB·정규화 → 3채널 → MobileNetV3-Small(ImageNet) → 6개 → softmax
+- `train/export_onnx.py`: 전처리 확인, ONNX 내보내기, onnxruntime 비교, `web/test/fixtures.json` 생성
+- `web/model-test.html`: 고정 입력 비교, 속도(100번), 마이크 실시간(0.5초마다 최근 2초), 결과 json 저장
+
+**결과** (출력: `docs/logs/onnx_export_1126.txt`, `docs/logs/model_test_pc_1126.txt`)
+- 합성곱 STFT vs torch.stft: 최대 상대 차이 1.68e-06
+- 로그 멜 모양: 64 × **201 프레임** (양 끝 0 채움 때문에 200이 아니라 201)
+- 파라미터 1,524,006개, ONNX 파일 6,812,310 바이트(6.81 MB), opset 17, 연산 30종
+- 내보내기: 기본 방식(dynamo)이 아니라 TorchScript 방식(`dynamo=False`)으로 opset 17을 맞춤. 출력 모양은 [배치, 6]으로 배치 칸이 이름만 있는 차원으로 기록됨(입력은 [1, 32000] 고정)
+- Python onnxruntime 1.31.0 vs PyTorch: 고정 입력 4개 최대 절대 차이 2.38e-05
+- PC 크롬(화면 없음) wasm: 고정 입력 4개 통과(최대 1.96e-05), 평균 20.5 ms, p95 30.3 ms, 첫 실행 65.4 ms, 모델 불러오기 737.6 ms, 1스레드
+- PC 크롬 WebGPU: 모델은 불러왔으나 실행에서 응답 없음 → 미확인 (화면 없는 크롬에는 실제 GPU 없음)
+
+**휴대폰에서 할 일**: `model-test.html`에서 1·2·3 실행 → 결과 파일 저장 → `?ep=webgpu`로 다시 열어 1·2 → 결과 파일 저장 → 두 json을 `data/raw/`로
+
 ## 다음 할 일
 - 설계서 7절 다음 단계 진행 (다음 단계 문서를 받으면)
 

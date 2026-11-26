@@ -1,0 +1,35 @@
+{
+  "classes": ["doorbell", "knock", "baby_cry", "siren", "horn", "other"],
+
+  "sample_rate": 16000,
+  "clip_seconds": 2.0,
+
+  "loudness": {
+    "target_dbfs": -20.0,
+    "floor_dbfs": -50.0
+  },
+
+  "stft": {
+    "win_length": 400,
+    "hop_length": 160,
+    "n_fft": 400,
+    "window": "hann",
+    "pad": "zeros_center"
+  },
+
+  "mel": {
+    "n_mels": 64,
+    "f_min": 0.0,
+    "f_max": 8000.0
+  },
+
+  "log_mel": {
+    "amin": 1e-10,
+    "norm_mean": -50.0,
+    "norm_std": 20.0,
+    "norm_is_temporary": true
+  },
+
+  "backbone": "mobilenet_v3_small",
+  "pretrained": "IMAGENET1K_V1"
+}
