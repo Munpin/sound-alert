@@ -168,6 +168,7 @@ python train/check_session.py data/raw/knock_1126_s02_desk_phone.wav --expect 10
 - 캡처: `docs/figures/phone_model_test_wasm_1126.png`, `docs/figures/phone_model_test_realtime_1126.png`, `docs/figures/phone_model_test_webgpu_1126.png`
 - "0.5초마다 확률이 바뀐다": 결과 파일에는 확률 기록이 없어(실행 32번·건너뜀 0번만 기록), 막대 수정 후 휴대폰에서 다시 열어 사용자가 눈으로 확인 → 6개 막대가 움직임 (2026-11-26). 이후 결과 파일에 실행마다 확률도 저장되게 바꿈
 - **1단계-3 완료 기준 4개 모두 통과 (wasm)**
+- WebGPU 파일 뺌 (사용자 결정): `web/vendor/`의 ort.webgpu.min.mjs, ort-wasm-simd-threaded.asyncify.{mjs,wasm} 삭제(약 29 MB), 시험 페이지의 WebGPU 버튼 삭제. 측정 결과는 `docs/logs/model_test_phone_webgpu_1126.json`에 남음
 
 ## 다음 할 일
 - 설계서 7절 다음 단계 진행 (다음 단계 문서를 받으면)

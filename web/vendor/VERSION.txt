@@ -1,6 +1,6 @@
 onnxruntime-web 1.31.1 (npm, MIT License)
 - ort.wasm.min.mjs + ort-wasm-simd-threaded.{mjs,wasm}: 기본 실행(WebAssembly)
-- ort.webgpu.min.mjs + ort-wasm-simd-threaded.asyncify.{mjs,wasm}: WebGPU 비교용
+- (WebGPU용 ort.webgpu.min.mjs + asyncify 파일은 2026-11-26 비교 후 뺌: 결과 불일치, 속도 이점 없음)
 
 MIT License
 

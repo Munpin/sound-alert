@@ -47,7 +47,7 @@
 | --- | --- |
 | onnxruntime-web | **1.31.1** (npm, MIT). `web/vendor/`에 넣어 씀 (인터넷 CDN 안 씀, 나중 오프라인 동작용) |
 | 기본 백엔드 | wasm (WebAssembly): `ort.wasm.min.mjs` + `ort-wasm-simd-threaded.{mjs,wasm}` |
-| 비교용 백엔드 | WebGPU: `ort.webgpu.min.mjs` + `ort-wasm-simd-threaded.asyncify.{mjs,wasm}` (시험 페이지 `?ep=webgpu`) |
+| WebGPU | 2026-11-26 휴대폰 비교 후 파일을 뺌 (결과 불일치, 속도 이점 없음). 필요하면 git 기록에서 되살림 |
 | 스레드 | GitHub Pages는 crossOriginIsolated가 아니라 wasm 멀티스레드를 못 씀 → 1스레드 |
 | 시험 페이지 | https://munpin.github.io/sound-alert/model-test.html |
 | 휴대폰 결과 (S24 Ultra, 2026-11-26) | **wasm 사용.** 고정 입력 4개 통과(최대 차이 1.96e-05), 평균 8.87 ms, p95 9.3 ms (`docs/logs/model_test_phone_wasm_1126.json`) |

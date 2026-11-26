@@ -37,9 +37,6 @@
   <section style="margin-top:12px">
     <h2>0. 실행 환경</h2>
     <table id="envTable"></table>
-    <div class="row">
-      <button id="switchBtn" class="secondary"></button>
-    </div>
   </section>
 
   <section>
@@ -79,7 +76,7 @@ import { ScreenWakeLock } from './recorder.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
-const EP = params.get('ep') === 'webgpu' ? 'webgpu' : 'wasm';
+const EP = 'wasm';   // WebGPU는 2026-11-26 비교 후 뺌 (결과 불일치, 속도 이점 없음)
 const MODEL_URL = './models/temp_model.onnx';
 const N = 32000;
 
@@ -117,19 +114,16 @@ function decodeF32(b64) {
 let ort, session, fixtures, classes;
 
 async function init() {
-  $('switchBtn').textContent = EP === 'wasm' ? 'WebGPU로 다시 열기 (비교용)' : 'wasm(기본)으로 다시 열기';
-  $('switchBtn').onclick = () => { location.search = EP === 'wasm' ? '?ep=webgpu' : ''; };
   result.device = await deviceInfo();
 
-  const envRows = [['실행 백엔드', EP === 'wasm' ? 'wasm (WebAssembly, 기본)' : 'WebGPU (비교용)']];
+  const envRows = [['실행 백엔드', 'wasm (WebAssembly)']];
   try {
-    ort = await import(EP === 'wasm' ? './vendor/ort.wasm.min.mjs' : './vendor/ort.webgpu.min.mjs');
+    ort = await import('./vendor/ort.wasm.min.mjs');
     ort.env.wasm.wasmPaths = new URL('./vendor/', location.href).href;
 
     const fx = await fetch('./test/fixtures.json'); fixtures = await fx.json();
     classes = fixtures.classes;
 
-    if (EP === 'webgpu' && !navigator.gpu) throw new Error('이 브라우저에서 WebGPU(navigator.gpu)를 쓸 수 없음');
     const t0 = performance.now();
     const buf = await (await fetch(MODEL_URL)).arrayBuffer();
     const t1 = performance.now();
@@ -148,8 +142,7 @@ async function init() {
       ['crossOriginIsolated', `${self.crossOriginIsolated} ${self.crossOriginIsolated ? '' : '(멀티스레드 불가 → 1스레드)'}`],
       ['CPU 코어 수', navigator.hardwareConcurrency],
     );
-    $('fixBtn').disabled = false; $('speedBtn').disabled = false; $('micBtn').disabled = EP !== 'wasm';
-    if (EP !== 'wasm') $('micStatus').textContent = '마이크 실시간은 wasm(기본)에서만 시험합니다.';
+    $('fixBtn').disabled = false; $('speedBtn').disabled = false; $('micBtn').disabled = false;
   } catch (e) {
     envRows.push(['오류', `<span class="bad">${e && e.message ? e.message : e}</span>`]);
     result.env.error = String(e && e.message ? e.message : e);
