@@ -52,7 +52,7 @@
 - 휴대폰 설정 스크린샷의 마이크 칸만 잘라 `docs/figures/phone_settings_1126.png`로 저장 (상태 표시줄 제외)
 - `recording_setup.md`에서 그림을 눈으로 읽은 숫자(6 kHz −27 dB → 8 kHz −45 dB)를 지우고 "수치 미측정"으로 고침
 
-### 3. 녹음 회차 확인 스크립트 (1단계-2, 스크립트 완료 · 실제 회차 확인 대기)
+### 3. 녹음 회차 확인 스크립트 (1단계-2)
 
 **무엇을**: 회차 하나(wav 하나)를 녹음한 직후 돌려, 소리 개수가 맞는지와 형식·클리핑·meta.csv를 확인하는 `train/check_session.py`.
 
@@ -95,8 +95,31 @@ python train/check_session.py data/raw/other_1126_s03_desk_phone.wav        # �
 **발견한 문제**
 - 작은 초인종은 울림 끝이 꺼짐 기준 아래로 내려가 구간이 일찍 끝난다(합성 4번: 2.58초, 큰 소리는 4.58초). 그 꼬리가 바로 뒤 other로 들어간다. 지금은 문서 규칙대로 두고, 2단계에서 학습용 2초 창을 자를 때 처리 방법을 정한다.
 
+### 4. 첫 실제 회차 확인 (1단계-2 완료)
+
+**녹음**: 휴대폰 책상 위, 녹음 시작 → 밖으로 나감 → 30초 대기 → 소리 10번 → 들어와 정지. 배경: 컴퓨터 팬(`fan`).
+- `doorbell_1126_s01_desk_phone_t2.wav` (250.25초. 같은 이름으로 두 번째 저장이라 `_t2`. 첫 번째 파일은 PC로 안 옮김)
+- `knock_1126_s02_desk_phone.wav` (151.65초)
+- 둘 다 16000 Hz · 1채널 · 16비트, 잘림 0개 (최댓값 −13.3 / −9.5 dBFS)
+
+**1차 확인 (자르기 없이)**: 초인종 15개, 노크 17개 → 기대 10개와 다름
+- 원인: 녹음 시작 후 나가는 발소리·문소리(0~19초)와 들어오는 소리(끝 10여 초)를 소리로 셈. 나가는 소리가 배경 계산에 들어가 기준도 높아짐.
+
+**2차 확인**
+```
+python train/check_session.py data/raw/doorbell_1126_s01_desk_phone_t2.wav --expect 10 --skip-start 20 --skip-end 12
+python train/check_session.py data/raw/knock_1126_s02_desk_phone.wav --expect 10 --skip-start 20 --skip-end 11 --drop 3,4
+```
+- 초인종: 10개 = 기대 10개. 길이 4.27~4.32초, 배경보다 +32.6~32.7 dB, 간격 16.9~24.1초
+- 노크: 자르기만 하면 12개. 3번(67.71초, +24.4 dB, 2.19초)·4번(70.86초, +18.5 dB)은 노크보다 작고(진짜 노크 최소 +27.6 dB) 모양이 다름 → 그림을 보고 `--drop 3,4`로 other 처리 → 10개
+- `--drop` 옵션 추가: 그림을 보고 잘못 잡힌 구간 번호를 other로 돌린다. 기준값(`--margin`)으로 빼기엔 노크와 차이가 2~3 dB라 불안정해서.
+- 출력: `docs/logs/session_check_real_1126.txt`, 그림: `docs/figures/session_check_doorbell_1126.png`, `docs/figures/session_check_knock_1126.png`
+- meta.csv에 두 파일 줄이 아직 없음 (스크립트 알림)
+
+**녹음 방법 메모**: 혼자 녹음하면 앞뒤에 나가고 들어오는 소리가 들어간다 → 확인할 때 `--skip-start 20 --skip-end 12` 정도로 잘라 낸다(그림에서 위치 확인).
+
 ## 다음 할 일
-- 오늘 저녁 첫 실제 회차 녹음 → `check_session.py`로 확인
+- meta.csv에 오늘 두 회차 줄 붙여 넣기 (녹음 페이지 '저장 기록 → 전체 복사')
 - 설계서 7절 다음 단계 진행 (다음 단계 문서를 받으면)
 
 ## 남은 문제

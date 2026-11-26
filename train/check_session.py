@@ -25,6 +25,7 @@
   --skip-start 15   앞 15초를 잘라 내고 본다 (녹음 시작 후 현관 밖으로 나가는 발소리·문소리)
   --skip-end 10     뒤 10초를 잘라 내고 본다 (다시 들어와 정지 버튼 누르는 소리)
                     잘라 낸 부분은 배경 계산·구간 찾기·구간 목록에서 모두 빠진다(학습에 안 씀).
+  --drop 3,4        그림을 보고 소리가 아닌 것으로 판단한 구간 번호를 other로 돌린다.
 """
 
 import argparse
@@ -247,11 +248,13 @@ def main():
     ap.add_argument("--merge-gap", type=float, default=None, help="이보다 가까운 구간은 하나로 (초)")
     ap.add_argument("--skip-start", type=float, default=0.0, help="앞에서 잘라 낼 초 (나가는 소리 등)")
     ap.add_argument("--skip-end", type=float, default=0.0, help="뒤에서 잘라 낼 초 (들어오는 소리 등)")
+    ap.add_argument("--drop", type=str, default="", help="other로 돌릴 구간 번호, 쉼표로 (예: 3,4)")
     ap.add_argument("--meta", type=Path, default=ROOT / "data" / "meta.csv")
     ap.add_argument("--out-dir", type=Path, default=ROOT / "data", help="checks/, segments/를 만들 곳")
     args = ap.parse_args()
 
     out = Report()
+    drop = {int(v) for v in args.drop.replace(" ", "").split(",") if v}
     name = args.wav.name
     stem = args.wav.stem
     ok_all = True
@@ -327,9 +330,17 @@ def main():
             top = level[i0:i1].max() - th["bg_med"]
             gap = f"{s - prev:8.1f}" if prev is not None else "       -"
             flag = "  ← 배경 구간 안" if s < bg_end else ""
+            if k in drop:
+                flag += "  → other로 돌림 (--drop)"
             out(f"  {k:4d} {s:9.2f} {e:9.2f} {e - s:9.2f}        +{top:5.1f} dB        {gap}{flag}")
             prev = s
         out("")
+        bad = [k for k in drop if not 1 <= k <= len(events)]
+        if bad:
+            raise SystemExit(f"--drop 번호 {bad}가 구간 범위(1~{len(events)}) 밖")
+        if drop:
+            out(f"[정보] --drop: 구간 {sorted(drop)}번을 other로 돌림 → {cls} 구간 {len(events) - len(drop)}개")
+            events = [ev for k, ev in enumerate(events, 1) if k not in drop]
         in_bg = sum(1 for s, _ in events if s < bg_end)
         if in_bg:
             out(f"[경고] 배경으로 쓴 {lo:.1f}~{bg_end:.1f}초 안에서 소리 {in_bg}개를 찾음. 배경에 큰 소리가 있었는지 확인")
