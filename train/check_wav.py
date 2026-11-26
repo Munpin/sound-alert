@@ -56,6 +56,19 @@ def spectrogram_db(x, rate):
     return db, freqs, times
 
 
+def load_pyplot():
+    """그림 파일만 만드는 matplotlib + 한글 글꼴"""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    for name in ["Malgun Gothic", "AppleGothic", "NanumGothic", "Noto Sans CJK KR"]:
+        if any(f.name == name for f in matplotlib.font_manager.fontManager.ttflist):
+            plt.rcParams["font.family"] = name
+            break
+    plt.rcParams["axes.unicode_minus"] = False
+    return plt
+
+
 def main():
     ap = argparse.ArgumentParser(description="녹음 wav 확인")
     ap.add_argument("wav", type=Path)
@@ -108,15 +121,7 @@ def main():
     loud_spec = 10 * np.log10(power[:, order[-k:]].mean(axis=1) + 1e-12)
 
     # ---------- 그림 ----------
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-    for name in ["Malgun Gothic", "AppleGothic", "NanumGothic", "Noto Sans CJK KR"]:
-        if any(f.name == name for f in matplotlib.font_manager.fontManager.ttflist):
-            plt.rcParams["font.family"] = name
-            break
-    plt.rcParams["axes.unicode_minus"] = False
-
+    plt = load_pyplot()
     fig, axes = plt.subplots(3, 1, figsize=(10, 9), gridspec_kw={"height_ratios": [1, 2, 1.4]})
     t = np.arange(len(x)) / info["rate"]
     axes[0].plot(t, x, lw=0.4, color="#1f5fbf")

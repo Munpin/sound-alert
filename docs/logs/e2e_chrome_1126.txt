@@ -1,0 +1,45 @@
+# PC Chrome 158(화면 없음, 가짜 마이크)에서 녹음 페이지 전체 시험. 스크립트: 임시 폴더의 e2e.mjs (CDP로 버튼 클릭)
+# 실행: 2026-11-26 19:40
+=== mode "default" ===
+mic ok
+통화용 처리 3가지가 모두 꺼졌습니다.
+echoCancellation = false (꺼짐) | noiseSuppression = false (꺼짐) | autoGainControl = false (꺼짐) | channelCount = 2 | 마이크 sampleRate = 44100 Hz | 16 kHz 변환 방식 = 브라우저 변환 (AudioContext 16000 Hz) | 저장 샘플레이트 = 16000 Hz, 모노, 16비트 | 마이크 이름 = Fake Default Audio Input | OS = Windows 19.0.0 | Chrome = 158.0.8127.38
+doorbell_1126_s01_desk_phone.wav
+timer 0:04.0 | 평균 -60.0 dB · 최대 -60.0 dB
+파일 이름 = doorbell_1126_s01_desk_phone.wav | 길이 = 4.00초 (64000 샘플) | 형식 = wav, 16000 Hz, 모노, 16비트 PCM | 최댓값 = 0.7 dBFS | 잘림 = 1008개 샘플
+meta: doorbell_1126_s01_desk_phone.wav,doorbell,own,phone_1126_s01,,desk,quiet,desk,phone,2026-11-26,own,
+wake: 화면 켜 두기: 꺼짐
+=== mode "?resample=js" ===
+mic ok
+통화용 처리 3가지가 모두 꺼졌습니다.
+echoCancellation = false (꺼짐) | noiseSuppression = false (꺼짐) | autoGainControl = false (꺼짐) | channelCount = 2 | 마이크 sampleRate = 44100 Hz | 16 kHz 변환 방식 = JavaScript 변환 (48000 Hz → 16000 Hz) | JS 변환 이유 = 시험용으로 JS 변환을 강제함(?resample=js) | 저장 샘플레이트 = 16000 Hz, 모노, 16비트 | 마이크 이름 = Fake Default Audio Input | OS = Windows 19.0.0 | Chrome = 158.0.8127.38
+doorbell_1126_s02_desk_phone.wav
+timer 0:04.0 | 평균 -60.0 dB · 최대 -60.0 dB
+파일 이름 = doorbell_1126_s02_desk_phone.wav | 길이 = 4.00초 (64000 샘플) | 형식 = wav, 16000 Hz, 모노, 16비트 PCM | 최댓값 = 0.8 dBFS | 잘림 = 832개 샘플
+meta: doorbell_1126_s02_desk_phone.wav,doorbell,own,phone_1126_s02,,desk,quiet,desk,phone,2026-11-26,own,
+wake: 화면 켜 두기: 꺼짐
+logs: []
+## python train/check_wav.py e2e_browser.wav
+파일          : e2e_browser.wav
+샘플레이트    : 16000 Hz
+채널          : 1
+비트          : 16
+길이          : 4.00초 (64000 샘플)
+[통과] 형식 16000 Hz · 모노 · 16비트
+최댓값        : 32767 / 32768 (-0.0 dBFS)
+끝값에 닿은 샘플: 640개, 99% 이상: 1008개
+[실패] 클리핑 없음
+4~7.8 kHz 세기: 바닥 -117.0 dB → 최대 -21.2 dB (차이 95.8 dB)
+[통과] 4 kHz 위 소리가 바닥보다 20 dB 이상 올라옴
+## python train/check_wav.py e2e_js.wav
+파일          : e2e_js.wav
+샘플레이트    : 16000 Hz
+채널          : 1
+비트          : 16
+길이          : 4.00초 (64000 샘플)
+[통과] 형식 16000 Hz · 모노 · 16비트
+최댓값        : 32767 / 32768 (-0.0 dBFS)
+끝값에 닿은 샘플: 624개, 99% 이상: 832개
+[실패] 클리핑 없음
+4~7.8 kHz 세기: 바닥 -117.0 dB → 최대 -21.1 dB (차이 95.9 dB)
+[통과] 4 kHz 위 소리가 바닥보다 20 dB 이상 올라옴
