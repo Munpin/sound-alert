@@ -1,0 +1,31 @@
+# 데이터 파일은 저장소에 올리지 않는다 (공개 데이터 이용 조건)
+data/
+*.wav
+*.flac
+*.mp3
+*.ogg
+*.m4a
+*.webm
+*.zip
+*.tar
+*.tar.gz
+
+# 모델 체크포인트 (배포용 모델은 나중에 따로 정함)
+*.pt
+*.pth
+*.ckpt
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
+
+# 편집기·OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Claude Code 개인 설정
+.claude/settings.local.json

@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>소리 알림 · 녹음 모드</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #fff; --text: #1b1f24; --muted: #5d6670; --line: #dde1e6;
+    --ok: #1a7f37; --bad: #c62828; --warn: #b26a00; --accent: #1f5fbf;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.45 system-ui, -apple-system, "Noto Sans KR", sans-serif;
+  }
+  main { max-width: 560px; margin: 0 auto; padding: 12px 12px 48px; }
+  h1 { font-size: 1.25rem; margin: 6px 0 12px; }
+  h2 { font-size: 1rem; margin: 0 0 10px; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+  button {
+    font: inherit; font-weight: 600; border: 0; border-radius: 10px; padding: 12px 16px;
+    background: var(--accent); color: #fff; cursor: pointer;
+  }
+  button.secondary { background: #e8ecf1; color: var(--text); }
+  button.danger { background: var(--bad); }
+  button:disabled { opacity: .4; cursor: default; }
+  .big { width: 100%; font-size: 1.15rem; padding: 16px; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .row > * { flex: 1; }
+  .muted { color: var(--muted); font-size: .9rem; }
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+  td { padding: 5px 4px; border-bottom: 1px solid var(--line); vertical-align: top; word-break: break-all; }
+  td:first-child { color: var(--muted); width: 46%; }
+  .ok { color: var(--ok); font-weight: 700; }
+  .bad { color: var(--bad); font-weight: 700; }
+  .banner { border-radius: 10px; padding: 10px 12px; margin-top: 10px; font-weight: 600; }
+  .banner.ok { background: #e6f4ea; }
+  .banner.bad { background: #fdecea; }
+  .banner.warn { background: #fff4e0; color: var(--warn); }
+  label { display: block; font-size: .9rem; color: var(--muted); margin: 8px 0 3px; }
+  input, select, textarea {
+    font: inherit; width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--text);
+  }
+  textarea { font-family: ui-monospace, Consolas, monospace; font-size: .8rem; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+  .session { display: flex; gap: 6px; }
+  .session input { text-align: center; }
+  .session button { flex: 0 0 48px; padding: 10px 0; }
+  .filename { font-family: ui-monospace, Consolas, monospace; font-size: .95rem; background: #f0f3f7; padding: 8px 10px; border-radius: 8px; margin-top: 10px; word-break: break-all; }
+  .timer { font-size: 2.4rem; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; margin: 6px 0; }
+  .meter { position: relative; height: 22px; background: #e8ecf1; border-radius: 6px; overflow: hidden; margin: 6px 0 2px; }
+  .meter .rms { position: absolute; left: 0; top: 0; bottom: 0; background: #3b8f5a; width: 0; }
+  .meter .peak { position: absolute; top: 0; bottom: 0; width: 3px; background: #1b1f24; left: 0; }
+  .meter.clip .rms { background: var(--bad); }
+  .scale { display: flex; justify-content: space-between; font-size: .75rem; color: var(--muted); }
+  .rec-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: var(--bad); margin-right: 6px; animation: blink 1s infinite; }
+  @keyframes blink { 50% { opacity: .2; } }
+  .hidden { display: none !important; }
+  audio { width: 100%; margin-top: 8px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>소리 알림 · 녹음 모드</h1>
+
+  <!-- 1. 마이크 -->
+  <section>
+    <h2>1. 마이크</h2>
+    <button id="micBtn" class="big">마이크 켜기</button>
+    <div id="micError" class="banner bad hidden"></div>
+    <div id="micInfo" class="hidden">
+      <div id="procBanner" class="banner"></div>
+      <table id="settingsTable" style="margin-top:10px"></table>
+      <div class="row" style="margin-top:10px">
+        <button id="copySettingsBtn" class="secondary">설정 정보 복사</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. 녹음 정보 -->
+  <section>
+    <h2>2. 녹음 정보</h2>
+    <div class="grid2">
+      <div>
+        <label for="cls">클래스</label>
+        <select id="cls"></select>
+      </div>
+      <div>
+        <label>날짜 (자동)</label>
+        <input id="date" readonly>
+      </div>
+      <div>
+        <label for="session">회차</label>
+        <div class="session">
+          <button id="sessDown" class="secondary" type="button">−</button>
+          <input id="session" type="number" min="1" max="99" inputmode="numeric">
+          <button id="sessUp" class="secondary" type="button">+</button>
+        </div>
+      </div>
+      <div>
+        <label for="place">장소 (영문 소문자)</label>
+        <input id="place" list="placeList" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <datalist id="placeList"></datalist>
+      </div>
+      <div>
+        <label for="background">배경 소리</label>
+        <input id="background" list="bgList" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <datalist id="bgList"></datalist>
+      </div>
+      <div>
+        <label for="phoneState">휴대폰 상태</label>
+        <input id="phoneState" list="stateList" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <datalist id="stateList"></datalist>
+      </div>
+    </div>
+    <label for="note">메모 (선택)</label>
+    <input id="note" autocomplete="off">
+    <label>기기: phone (고정)</label>
+    <div id="fileName" class="filename"></div>
+    <div id="nameError" class="banner bad hidden"></div>
+  </section>
+
+  <!-- 3. 녹음 -->
+  <section>
+    <h2>3. 녹음</h2>
+    <div class="timer"><span id="recDot" class="rec-dot hidden"></span><span id="timer">0:00.0</span></div>
+    <div id="meter" class="meter"><div class="rms"></div><div class="peak"></div></div>
+    <div class="scale"><span>-60 dB</span><span>-40</span><span>-20</span><span>0 dB</span></div>
+    <div class="muted" id="levelText">마이크를 먼저 켜세요.</div>
+    <div id="clipBanner" class="banner bad hidden"></div>
+    <div class="row" style="margin-top:12px">
+      <button id="recBtn" class="big" disabled>녹음 시작</button>
+    </div>
+    <div class="muted" id="wakeText" style="margin-top:6px">화면 켜 두기: 꺼짐</div>
+  </section>
+
+  <!-- 4. 저장 -->
+  <section id="resultSection" class="hidden">
+    <h2>4. 저장</h2>
+    <table id="resultTable"></table>
+    <audio id="preview" controls></audio>
+    <div id="dupBanner" class="banner warn hidden"></div>
+    <div class="row" style="margin-top:10px">
+      <button id="saveBtn">wav 저장</button>
+      <button id="discardBtn" class="secondary">버리기</button>
+    </div>
+    <div id="savedBox" class="hidden">
+      <div class="banner ok" id="savedText"></div>
+      <label>meta.csv에 붙여 넣을 줄</label>
+      <textarea id="metaLine" rows="3" readonly></textarea>
+      <div class="row" style="margin-top:6px"><button id="copyLineBtn" class="secondary">이 줄 복사</button></div>
+    </div>
+  </section>
+
+  <!-- 5. 저장 기록 -->
+  <section>
+    <h2>5. 저장 기록 (meta.csv 줄 모음)</h2>
+    <div class="muted">이 휴대폰 브라우저에 남아 있습니다. 첫 줄은 머리글입니다.</div>
+    <textarea id="allLines" rows="6" readonly style="margin-top:6px"></textarea>
+    <div class="row" style="margin-top:6px">
+      <button id="copyAllBtn" class="secondary">전체 복사</button>
+      <button id="clearAllBtn" class="secondary">기록 지우기</button>
+    </div>
+  </section>
+</main>
+
+<script type="module">
+import { openMicrophone, measureLevel, toDb, CLIP_LEVEL, TARGET_RATE } from './audio-input.js';
+import {
+  Recorder, encodeWav, downloadBlob, ScreenWakeLock,
+  CLASSES, PLACES, PHONE_STATES, BACKGROUNDS, DEVICE, META_HEADER,
+  todayMMDD, todayISO, sessionId, isSafePart, isSafePlace, baseName, uniqueFileName, metaRow,
+} from './recorder.js';
+
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('sa.' + k); return v === null ? d : JSON.parse(v); } catch (_) { return d; } },
+  set(k, v) { localStorage.setItem('sa.' + k, JSON.stringify(v)); },
+};
+
+// ---------- 입력칸 준비 ----------
+const fill = (el, items, asOptions) => {
+  el.innerHTML = items.map((x) => asOptions ? `<option value="${x}">${x}</option>` : `<option value="${x}">`).join('');
+};
+fill($('cls'), CLASSES, true);
+fill($('placeList'), PLACES);
+fill($('bgList'), BACKGROUNDS);
+fill($('stateList'), PHONE_STATES);
+
+$('cls').value = store.get('cls', 'doorbell');
+$('place').value = store.get('place', 'desk');
+$('background').value = store.get('background', 'quiet');
+$('phoneState').value = store.get('phoneState', 'desk');
+$('session').value = store.get('lastSession', 0) + 1;   // 기본값: 이전 회차 + 1
+$('date').value = todayMMDD();
+
+function form() {
+  return {
+    cls: $('cls').value,
+    date: todayMMDD(),
+    isoDate: todayISO(),
+    session: parseInt($('session').value, 10),
+    place: $('place').value.trim(),
+    background: $('background').value.trim(),
+    phoneState: $('phoneState').value.trim(),
+    note: $('note').value.trim(),
+  };
+}
+
+function validate(f) {
+  const errs = [];
+  if (!(f.session >= 1 && f.session <= 99)) errs.push('회차는 1~99 사이 숫자');
+  if (!isSafePlace(f.place)) errs.push('장소는 영문 소문자·숫자만 (밑줄 없이)');
+  if (!isSafePart(f.background)) errs.push('배경은 영문 소문자·숫자·밑줄만');
+  if (!isSafePart(f.phoneState)) errs.push('휴대폰 상태는 영문 소문자·숫자·밑줄만');
+  return errs;
+}
+
+function refreshName() {
+  $('date').value = todayMMDD();
+  const f = form();
+  const errs = validate(f);
+  $('nameError').classList.toggle('hidden', errs.length === 0);
+  $('nameError').textContent = errs.join(' · ');
+  $('fileName').textContent = errs.length ? '—' : baseName(f) + '.wav';
+  store.set('cls', f.cls); store.set('place', f.place);
+  store.set('background', f.background); store.set('phoneState', f.phoneState);
+  return errs.length === 0;
+}
+['cls', 'session', 'place', 'background', 'phoneState', 'note'].forEach((id) => $(id).addEventListener('input', refreshName));
+$('sessDown').onclick = () => { $('session').value = Math.max(1, (parseInt($('session').value, 10) || 1) - 1); refreshName(); };
+$('sessUp').onclick = () => { $('session').value = Math.min(99, (parseInt($('session').value, 10) || 0) + 1); refreshName(); };
+refreshName();
+
+// ---------- 저장 기록 ----------
+function savedRows() { return store.get('rows', []); }
+function savedNames() { return new Set(store.get('names', [])); }
+function refreshAll() {
+  const rows = savedRows();
+  $('allLines').value = rows.length ? [META_HEADER, ...rows].join('\n') : '';
+}
+refreshAll();
+
+async function copyText(text, btn) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (_) {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove();
+  }
+  const old = btn.textContent; btn.textContent = '복사됨'; setTimeout(() => { btn.textContent = old; }, 1200);
+}
+$('copyAllBtn').onclick = () => copyText($('allLines').value, $('copyAllBtn'));
+$('clearAllBtn').onclick = () => {
+  if (!confirm('저장 기록(meta 줄과 이름 목록)을 지울까요? 휴대폰에 저장된 wav 파일은 지워지지 않습니다.')) return;
+  store.set('rows', []); store.set('names', []); refreshAll();
+};
+
+// ---------- 마이크 ----------
+let mic = null;
+const recorder = new Recorder(TARGET_RATE);
+let lastLevel = { rms: 0, peak: 0, clipped: 0 };
+let clipHoldUntil = 0;
+let deviceInfo = {};
+
+async function readDeviceInfo() {
+  const info = { userAgent: navigator.userAgent };
+  try {
+    if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
+      const h = await navigator.userAgentData.getHighEntropyValues(['model', 'platform', 'platformVersion', 'fullVersionList']);
+      info.model = h.model;
+      info.platform = `${h.platform} ${h.platformVersion}`;
+      const chrome = (h.fullVersionList || []).find((b) => /Chrome|Chromium/.test(b.brand));
+      if (chrome) info.chrome = chrome.version;
+    }
+  } catch (_) {}
+  return info;
+}
+
+function renderSettings() {
+  const s = mic.settings;
+  const procKeys = ['echoCancellation', 'noiseSuppression', 'autoGainControl'];
+  const offCount = procKeys.filter((k) => s[k] === false).length;
+  const rows = [];
+  for (const k of procKeys) {
+    const v = s[k];
+    const cls = v === false ? 'ok' : 'bad';
+    const txt = v === false ? 'false (꺼짐)' : v === undefined ? '알 수 없음' : `${v} (켜짐!)`;
+    rows.push([k, `<span class="${cls}">${txt}</span>`]);
+  }
+  rows.push(['channelCount', s.channelCount ?? '알 수 없음']);
+  rows.push(['마이크 sampleRate', s.sampleRate ? `${s.sampleRate} Hz` : '알 수 없음']);
+  rows.push(['16 kHz 변환 방식', mic.methodLabel]);
+  if (mic.fallbackReason) rows.push(['JS 변환 이유', mic.fallbackReason]);
+  rows.push(['저장 샘플레이트', `${TARGET_RATE} Hz, 모노, 16비트`]);
+  rows.push(['마이크 이름', mic.track.label || '-']);
+  if (deviceInfo.model) rows.push(['기종', deviceInfo.model]);
+  if (deviceInfo.platform) rows.push(['OS', deviceInfo.platform]);
+  if (deviceInfo.chrome) rows.push(['Chrome', deviceInfo.chrome]);
+  $('settingsTable').innerHTML = rows.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('');
+
+  const pb = $('procBanner');
+  if (offCount === 3) {
+    pb.className = 'banner ok';
+    pb.textContent = '통화용 처리 3가지가 모두 꺼졌습니다.';
+  } else {
+    pb.className = 'banner bad';
+    pb.textContent = `통화용 처리 중 ${3 - offCount}개가 꺼지지 않았습니다. 녹음 전에 알려 주세요(설계서 8절).`;
+  }
+}
+
+function settingsText() {
+  return JSON.stringify({
+    time: new Date().toISOString(),
+    getSettings: mic.settings,
+    method: mic.method,
+    methodLabel: mic.methodLabel,
+    fallbackReason: mic.fallbackReason,
+    audioContextSampleRate: mic.contextRate,
+    outputSampleRate: TARGET_RATE,
+    trackLabel: mic.track.label,
+    device: deviceInfo,
+    pageUrl: location.href,
+  }, null, 2);
+}
+$('copySettingsBtn').onclick = () => copyText(settingsText(), $('copySettingsBtn'));
+
+$('micBtn').onclick = async () => {
+  if (mic) {                       // 끄기
+    if (recorder.active) await stopRecording();
+    await mic.stop(); mic = null;
+    $('micBtn').textContent = '마이크 켜기';
+    $('recBtn').disabled = true;
+    $('levelText').textContent = '마이크를 먼저 켜세요.';
+    return;
+  }
+  $('micBtn').disabled = true;
+  $('micError').classList.add('hidden');
+  try {
+    const forceJs = new URLSearchParams(location.search).get('resample') === 'js';
+    mic = await openMicrophone({
+      forceJs,
+      onChunk: (chunk) => {
+        lastLevel = measureLevel(chunk);
+        if (lastLevel.clipped) clipHoldUntil = performance.now() + 1000;
+        recorder.push(chunk);
+      },
+      onEnded: () => {
+        $('micError').textContent = '마이크가 끊겼습니다(다른 앱이 마이크를 쓰는 중일 수 있음). 다시 켜 주세요.';
+        $('micError').classList.remove('hidden');
+      },
+    });
+    deviceInfo = await readDeviceInfo();
+    renderSettings();
+    $('micInfo').classList.remove('hidden');
+    $('micBtn').textContent = '마이크 끄기';
+    $('recBtn').disabled = false;
+  } catch (e) {
+    mic = null;
+    $('micError').textContent = '마이크를 켜지 못했습니다: ' + (e && e.name ? `${e.name} — ` : '') + (e && e.message ? e.message : e);
+    $('micError').classList.remove('hidden');
+  } finally {
+    $('micBtn').disabled = false;
+  }
+};
+
+// ---------- 음량 막대, 경과 시간 ----------
+function fmtTime(sec) {
+  const m = Math.floor(sec / 60), s = sec - m * 60;
+  return `${m}:${s.toFixed(1).padStart(4, '0')}`;
+}
+function draw() {
+  if (mic) {
+    const rmsDb = toDb(lastLevel.rms), peakDb = toDb(lastLevel.peak);
+    const pct = (db) => ((db + 60) / 60) * 100;
+    const meter = $('meter');
+    meter.querySelector('.rms').style.width = pct(rmsDb) + '%';
+    meter.querySelector('.peak').style.left = `calc(${pct(peakDb)}% - 3px)`;
+    meter.classList.toggle('clip', performance.now() < clipHoldUntil);
+    $('levelText').textContent = `평균 ${rmsDb.toFixed(1)} dB · 최대 ${peakDb.toFixed(1)} dB`;
+  }
+  if (recorder.active) {
+    $('timer').textContent = fmtTime(recorder.seconds);
+    if (recorder.clipped > 0) {
+      $('clipBanner').textContent = `소리가 너무 커서 잘렸습니다 (${recorder.clipped}개 샘플). 휴대폰을 소리에서 조금 떨어뜨리세요.`;
+      $('clipBanner').classList.remove('hidden');
+    }
+  }
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+
+// ---------- 녹음 ----------
+const wake = new ScreenWakeLock((on, why) => {
+  $('wakeText').textContent = '화면 켜 두기: ' + (on ? '켜짐' : '꺼짐') + (why ? ` (${why})` : '');
+});
+let pending = null; // 저장 안 한 녹음 { samples, blob, url, form, peak, clipped }
+
+$('recBtn').onclick = async () => {
+  if (recorder.active) { await stopRecording(); return; }
+  if (!refreshName()) { alert('녹음 정보를 먼저 고쳐 주세요.'); return; }
+  if (pending && !pending.saved && !confirm('저장하지 않은 녹음이 있습니다. 버리고 새로 녹음할까요?')) return;
+  clearPending();
+  recorder.start();
+  $('clipBanner').classList.add('hidden');
+  $('recBtn').textContent = '녹음 정지';
+  $('recBtn').classList.add('danger');
+  $('recDot').classList.remove('hidden');
+  await wake.on();
+};
+
+async function stopRecording() {
+  const f = form();
+  const peak = recorder.peak, clipped = recorder.clipped;
+  const samples = recorder.stop();
+  await wake.off();
+  $('recBtn').textContent = '녹음 시작';
+  $('recBtn').classList.remove('danger');
+  $('recDot').classList.add('hidden');
+  $('timer').textContent = fmtTime(samples.length / TARGET_RATE);
+
+  const blob = encodeWav(samples, TARGET_RATE);
+  pending = { samples, blob, url: URL.createObjectURL(blob), form: f, peak, clipped, saved: false };
+  $('preview').src = pending.url;
+  const { name, take } = uniqueFileName(baseName(f), savedNames());
+  pending.name = name;
+  $('resultTable').innerHTML = [
+    ['파일 이름', name],
+    ['길이', `${(samples.length / TARGET_RATE).toFixed(2)}초 (${samples.length} 샘플)`],
+    ['형식', `wav, ${TARGET_RATE} Hz, 모노, 16비트 PCM`],
+    ['최댓값', `${toDb(peak).toFixed(1)} dBFS`],
+    ['잘림', clipped ? `<span class="bad">${clipped}개 샘플</span>` : '<span class="ok">없음</span>'],
+  ].map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('');
+  $('dupBanner').classList.toggle('hidden', take === 1);
+  $('dupBanner').textContent = `같은 이름을 이미 저장해서 끝에 _t${take}를 붙였습니다.`;
+  $('savedBox').classList.add('hidden');
+  $('saveBtn').disabled = false;
+  $('resultSection').classList.remove('hidden');
+  $('resultSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function clearPending() {
+  if (pending) URL.revokeObjectURL(pending.url);
+  pending = null;
+  $('preview').removeAttribute('src');
+  $('resultSection').classList.add('hidden');
+}
+
+$('saveBtn').onclick = () => {
+  if (!pending || pending.saved) return;
+  // 저장 직전에 이름을 다시 확인 (그사이 다른 파일을 저장했을 수 있음)
+  const names = savedNames();
+  const { name } = uniqueFileName(baseName(pending.form), names);
+  pending.name = name;
+  downloadBlob(pending.blob, name);
+  const line = metaRow({ file: name, ...pending.form });
+  names.add(name);
+  store.set('names', [...names]);
+  store.set('rows', [...savedRows(), line]);
+  store.set('lastSession', pending.form.session);
+  pending.saved = true;
+  $('saveBtn').disabled = true;
+  $('savedText').textContent = `저장했습니다: ${name} (다운로드 폴더)`;
+  $('metaLine').value = line;
+  $('savedBox').classList.remove('hidden');
+  refreshAll();
+};
+$('discardBtn').onclick = () => {
+  if (pending && !pending.saved && !confirm('이 녹음을 버릴까요?')) return;
+  clearPending();
+  $('timer').textContent = fmtTime(0);
+};
+$('copyLineBtn').onclick = () => copyText($('metaLine').value, $('copyLineBtn'));
+</script>
+</body>
+</html>
