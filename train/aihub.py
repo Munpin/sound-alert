@@ -2,6 +2,7 @@
 
 사용법
   python train/aihub.py list      # 2-1: 소분류 목록·개수, 라벨 칸 이름, 날짜·장소 묶음 수
+  python train/aihub.py index     # 2-2·2-3: 후보 조각 표 + 묶음 단위 분할 → data/raw_public/aihub/index.csv
 
 원본 위치는 train/config.json의 paths.aihub_zip_root.
 """
@@ -151,8 +152,178 @@ def cmd_list():
         print(f"  {k:14s} {len(c):3d}종: {top}")
 
 
+# ---------------------------------------------------------------------------
+# 2-2·2-3: 후보 목록(index)과 묶음 단위 분할
+# ---------------------------------------------------------------------------
+AH = CFG["aihub"]
+OUT_DIR = ROOT / "data" / "raw_public" / "aihub"
+INDEX_CSV = OUT_DIR / "index.csv"
+INDEX_COLS = ["member", "zip", "aihub_split", "subcat", "cls", "group_id", "date", "urban", "district", "place",
+              "area_start", "area_end", "seg_sec", "sample_rate", "channels", "file_size", "crc", "split"]
+
+
+def dig(d, path):
+    for k in path.split("."):
+        d = d.get(k, {}) if isinstance(d, dict) else {}
+    return d if d != {} else None
+
+
+def sr_hz(s):
+    try:
+        return int(round(float(str(s).lower().replace("khz", "")) * 1000))
+    except ValueError:
+        return 0
+
+
+def build_index():
+    """교통·생활소음 중 class_map에 있는 소분류의 모든 소리 조각을 한 표로"""
+    rows, dropped = [], collections.Counter()
+    for split, kind, wz, lz in ZIPS:
+        if kind == 3:
+            continue
+        zw, zl = zipfile.ZipFile(ZIP_ROOT / wz), zipfile.ZipFile(ZIP_ROOT / lz)
+        wavs = {real_name(i): i for i in zw.infolist() if not i.is_dir()}
+        for li in zl.infolist():
+            ln = real_name(li)
+            if li.is_dir() or not ln.endswith(".json"):
+                continue
+            cat = ln.rsplit("/", 1)[0]
+            if cat not in AH["class_map"]:
+                continue
+            d = read_json(zl, li)
+            for ann in d.get("annotations", []):
+                member = f"{cat}/{ann['labelName']}"
+                wi = wavs.get(member)
+                if wi is None:
+                    dropped["wav 없음"] += 1
+                    continue
+                sr = sr_hz(dig(d, "audio.sampleRate"))
+                if sr < AH["min_sample_rate"]:
+                    dropped[f"샘플레이트 {sr} Hz"] += 1
+                    continue
+                g = "|".join(str(dig(d, k)) for k in AH["group_keys"])
+                a = ann["area"]
+                rows.append({
+                    "member": member, "zip": wz, "aihub_split": split, "subcat": cat, "cls": AH["class_map"][cat],
+                    "group_id": "aihub:" + g, "date": dig(d, "info.dateCreated"), "urban": dig(d, "environment.urban"),
+                    "district": dig(d, "environment.district"), "place": dig(d, "environment.place"),
+                    "area_start": a["start"], "area_end": a["end"], "seg_sec": round(float(a["end"]) - float(a["start"]), 3),
+                    "sample_rate": sr, "channels": 2 if str(dig(d, "audio.recodingType")).lower() == "stereo" else 1,
+                    "file_size": wi.file_size, "crc": f"{wi.CRC:08x}", "split": "",
+                })
+    return rows, dropped
+
+
+def assign_splits(rows):
+    """묶음 단위로 학습 70 / 검증 15 / 시험 15. 클래스(와 소분류) 비율이 분할마다 비슷하도록.
+    묶음 순서를 여러 번 섞어 욕심쟁이(greedy) 배정을 해 보고 비용이 가장 낮은 것을 고른다."""
+    import random
+    names = list(AH["split_ratios"])
+    target = [AH["split_ratios"][n] for n in names]
+    groups = collections.defaultdict(lambda: collections.Counter())
+    for r in rows:
+        groups[r["group_id"]][("cls", r["cls"])] += 1
+        groups[r["group_id"]][("sub", r["subcat"])] += 1
+    # 파일 수뿐 아니라 '묶음 수'도 비율에 맞춘다. 파일 수만 맞추면 큰 묶음 하나가 시험을 통째로 차지해
+    # 시험이 한 장소·날짜뿐이 된다(첫 실행에서 경적·사이렌 시험이 묶음 1개였음).
+    for g in groups.values():
+        for k in [k for k in g if k[0] in ("cls", "sub")]:
+            g[("g" + k[0], k[1])] = 1
+    keys = sorted({k for g in groups.values() for k in g})
+    total = {k: sum(g[k] for g in groups.values()) for k in keys}
+    weight = {"cls": 0.5, "gcls": 1.0, "sub": 0.4, "gsub": 0.4}
+    weight = {k: weight[k[0]] for k in keys}
+
+    def cost(load):
+        c = 0.0
+        for k in keys:
+            for si in range(3):
+                share = load[si][k] / total[k]
+                c += weight[k] * (share - target[si]) ** 2
+                if k[0] == "cls" and load[si][k] == 0:
+                    c += 10.0  # 어떤 분할에 그 클래스가 하나도 없으면 큰 벌점
+        return c
+
+    rng = random.Random(AH["split_seed"])
+    gids = sorted(groups)
+    best = (float("inf"), None)
+    for _ in range(AH["split_trials"]):
+        rng.shuffle(gids)
+        gids.sort(key=lambda g: -sum(v for k, v in groups[g].items() if k[0] == "cls") * rng.uniform(0.5, 1.5))
+        load = [collections.Counter() for _ in range(3)]
+        assign = {}
+        for g in gids:
+            trial = []
+            for si in range(3):
+                load[si].update(groups[g])
+                trial.append((cost(load), si))
+                load[si].subtract(groups[g])
+            _, si = min(trial)
+            load[si].update(groups[g])
+            assign[g] = names[si]
+        c = cost(load)
+        if c < best[0]:
+            best = (c, dict(assign))
+    for r in rows:
+        r["split"] = best[1][r["group_id"]]
+    return best[0]
+
+
+def cmd_index():
+    import csv
+    rows, dropped = build_index()
+    print(f"후보 조각 {len(rows)}개, 뺀 것 {dict(dropped)}")
+    c = assign_splits(rows)
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    with open(INDEX_CSV, "w", encoding="utf-8", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=INDEX_COLS)
+        w.writeheader()
+        w.writerows(rows)
+    print(f"저장: {INDEX_CSV.relative_to(ROOT)} (분할 비용 {c:.5f})")
+    report_index(rows)
+
+
+def report_index(rows):
+    import numpy as np
+    by = collections.defaultdict(list)
+    for r in rows:
+        by[r["cls"]].append(r)
+    print("\n== 클래스별 조각 길이(초) 분포 ==")
+    print(f"{'클래스':8s} {'개수':>6s} {'<1s':>6s} {'1~2s':>6s} {'>=2s':>6s} {'중앙값':>7s} {'p10':>6s} {'p90':>6s}")
+    for c in ["horn", "siren", "other"]:
+        s = np.array([r["seg_sec"] for r in by[c]])
+        print(f"{c:8s} {len(s):6d} {int((s < 1).sum()):6d} {int(((s >= 1) & (s < 2)).sum()):6d} {int((s >= 2).sum()):6d} "
+              f"{np.median(s):7.2f} {np.percentile(s, 10):6.2f} {np.percentile(s, 90):6.2f}")
+    print("\n== 소분류별 조각 길이 ==")
+    subs = collections.defaultdict(list)
+    for r in rows:
+        subs[r["subcat"]].append(r["seg_sec"])
+    for k in sorted(subs):
+        s = np.array(subs[k])
+        print(f"  {k:24s} {len(s):5d}개  2초 미만 {int((s < 2).sum()):5d} ({(s < 2).mean() * 100:4.1f}%)  중앙값 {np.median(s):5.2f}s")
+
+    print("\n== 분할 결과: 조각 수 (묶음 수) ==")
+    print(f"{'':24s} {'train':>14s} {'val':>12s} {'test':>12s}  학습 비율")
+    def line(name, sel):
+        cnt = collections.Counter(r["split"] for r in sel)
+        grp = {s: len({r['group_id'] for r in sel if r['split'] == s}) for s in ["train", "val", "test"]}
+        n = sum(cnt.values())
+        cells = [f"{cnt[s]:6d} ({grp[s]:3d})" for s in ["train", "val", "test"]]
+        print(f"{name:24s} {cells[0]:>14s} {cells[1]:>12s} {cells[2]:>12s}  {cnt['train'] / n * 100:5.1f}/{cnt['val'] / n * 100:4.1f}/{cnt['test'] / n * 100:4.1f}")
+    for c in ["horn", "siren", "other"]:
+        line(c, by[c])
+    print("  -- 소분류")
+    for k in sorted(subs):
+        line("  " + k, [r for r in rows if r["subcat"] == k])
+    gs = collections.defaultdict(set)
+    for r in rows:
+        gs[r["group_id"]].add(r["split"])
+    print(f"\n묶음 {len(gs)}개, 여러 분할에 걸친 묶음 {sum(1 for v in gs.values() if len(v) > 1)}개")
+
+
 if __name__ == "__main__":
-    if len(sys.argv) < 2 or sys.argv[1] != "list":
+    cmds = {"list": cmd_list, "index": cmd_index}
+    if len(sys.argv) < 2 or sys.argv[1] not in cmds:
         print(__doc__)
         sys.exit(1)
-    cmd_list()
+    cmds[sys.argv[1]]()

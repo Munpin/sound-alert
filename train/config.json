@@ -35,6 +35,30 @@
     "esc50_root": "data/raw_public/esc50/ESC-50-master"
   },
 
+  "aihub": {
+    "class_map": {
+      "1.자동차/1.차량경적": "horn",
+      "2.이륜자동차/4.이륜차경적": "horn",
+      "1.자동차/2.차량사이렌": "siren",
+      "1.자동차/3.차량주행음": "other",
+      "2.이륜자동차/5.이륜차주행음": "other",
+      "5.충격/10.발소리": "other",
+      "5.충격/11.가구소리": "other",
+      "6.가전/12.청소기": "other",
+      "6.가전/13.세탁기": "other",
+      "7.동물/14.개": "other",
+      "7.동물/15.고양이": "other",
+      "8.도구/16.공구": "other",
+      "8.도구/17.악기": "other"
+    },
+    "group_keys": ["info.dateCreated", "environment.urban", "environment.district"],
+    "min_sample_rate": 16000,
+    "split_ratios": {"train": 0.70, "val": 0.15, "test": 0.15},
+    "split_seed": 0,
+    "split_trials": 400,
+    "train_cap": {"horn": 600, "siren": 600, "other": 1400}
+  },
+
   "backbone": "mobilenet_v3_small",
   "pretrained": "IMAGENET1K_V1"
 }

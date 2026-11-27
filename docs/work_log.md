@@ -187,7 +187,26 @@ python train/check_session.py data/raw/knock_1126_s02_desk_phone.wav --expect 10
 - 라벨 칸: 날짜 `info.dateCreated`, 장소 `environment.urban`(시·도)·`district`(동)·`place`(도로변/건물내부 등 장소 종류), gps(소수 둘째 자리)
 - 샘플레이트 섞임: 44.1 kHz 47,739 / 48 kHz 2,919 / 22.05 kHz 23 / 32 kHz 9 / 8 kHz 1. 스테레오 10,910개
 - 차량경적은 날짜 7종, 날짜+시·도+동 묶음 32개(그중 20개가 AI Hub Training·Validation 양쪽에 있음)
-- 보고 후 결정 대기
+- **결정 (사용자 승인)**: 이륜차경적 → horn (설계서 2절 '자동차, 오토바이 경적'), '그 외' 후보 = 생활소음 8종 전부 + 차량주행음·이륜차주행음, 묶음 ID = 날짜(info.dateCreated) + 시·도(urban) + 동(district), 사업장소음·기차·지하철·비행기·헬리콥터는 안 씀. 8 kHz 파일 1개는 뺌(설계서 4절 원칙 4)
+- 라이브러리 설치 (사용자 승인): soxr, yt-dlp
+
+**2-2·2-3. AI Hub 후보 목록과 분할** (`python train/aihub.py index` → `data/raw_public/aihub/index.csv`, 출력 `docs/logs/aihub_index_1127.txt`)
+- 압축 안 wav는 녹음 전체가 아니라 **라벨 소리 구간만 잘라 둔 조각**(조각 길이 = area.end − area.start, 8개 확인)
+- 후보 40,095개 (horn 8,667 / siren 2,239 / other 29,189), 8 kHz 1개 뺌. 압축 방식 deflate, CRC는 표에 저장(뽑을 때 확인)
+- 2초 미만 조각: horn 3,390개(39%: 차량경적 31.3%, 이륜차경적 44.6%), siren 6개, other 1,613개
+- 분할(묶음 385개, 여러 분할에 걸친 묶음 0개)
+  - 1차: 파일 수 비율만 맞춤 → 경적·사이렌 시험이 묶음 1개뿐(한 장소·날짜). 버림
+  - 2차: 묶음 수 비율도 맞춤(가중치 파일 0.5, 묶음 1.0, 소분류 0.4) → horn 학습/검증/시험 5,444(31묶음)/1,530(5)/1,693(6), siren 1,638(67)/544(14)/57(15), other 21,539(215)/4,093(53)/3,557(52)
+  - 한계: 차량경적은 날짜 7종, 한 묶음에 1,300개 이상이 몰려 시험이 20개(5묶음)뿐. horn 시험 대부분이 이륜차경적. 개(4묶음)는 검증 0개
+
+**2-5. 크롬 변환과 soxr 비교** (`python train/compare_resample.py` → `docs/logs/resample_compare_1127.txt`, `docs/figures/resample_compare_1127.png`)
+- 방법: PC 크롬 158에 백색 잡음(48 kHz, 44.1 kHz)을 넣고 녹음 페이지와 같은 경로(16 kHz AudioContext + AudioWorklet)로 받아 주파수 특성을 잼. 같은 잡음을 soxr(VHQ)로도 바꿈
+- 1차 측정은 곡선이 들쭉날쭉: 브라우저에서 만든 잡음의 난수식이 JS 숫자 정밀도를 넘어 고르지 않았음 → Math.random으로 다시 잼(끊김 없음 확인)
+- 크롬: −1 dB 6,375 Hz, −3 dB 6,922 Hz, −6 dB 7,359 Hz, 7.8 kHz −11.2 dB (48k→16k). 44.1k도 거의 같음
+- soxr: 7,562 Hz까지 평평(−1 dB), 7.8 kHz −30.2 dB로 급하게 끊음
+- 휴대폰 확인 녹음 평균 스펙트럼도 7 kHz 위에서 완만하게 줄어듦(7.0k −7.4, 7.5k −14.3 dB, 2~5 kHz 기준)
+- 가정: PC 크롬과 안드로이드 크롬의 변환기가 같다(같은 Chromium 코드). 휴대폰에서 직접 백색 잡음 측정은 안 함(미확인)
+- 보고 후 결정 대기 (필터 적용 여부, 2초 미만 조각 처리)
 
 ## 다음 할 일
 - 설계서 7절 다음 단계 진행 (다음 단계 문서를 받으면)
