@@ -100,7 +100,7 @@ def main():
             if s == "합계":
                 v = totals.get((c, sp), 0)
                 need = (T["test_min_baby_cry"] if c == "baby_cry" else T["test_min"]) if sp == "test" else (T["val_min"] if sp == "val" else 0)
-                cl.append("#f8c8c8" if v < need else "#d7ecd9")
+                cl.append("#f8c8c8" if v < need or v == 0 else "#d7ecd9")
             elif s == "시험 A":
                 v = a[c]
                 cl.append("#f8c8c8" if v == 0 else "#d7ecd9")
@@ -115,7 +115,7 @@ def main():
     tb.auto_set_font_size(False)
     tb.set_fontsize(8)
     tb.scale(1, 1.7)
-    ax.set_title(f"2초 창 개수 (클래스 × 분할 × 출처, data/meta.csv) — 빨강: 시험 30개(아기 울음 50) 또는 검증 20개 미만, 시험 A에 없음", fontsize=11)
+    ax.set_title(f"2초 창 개수 (클래스 × 분할 × 출처, data/meta.csv) — 빨강: 0개, 시험 30개(아기 울음 50) 또는 검증 20개 미만, 시험 A에 없음", fontsize=11)
     out = ROOT / "docs" / "figures" / f"data_counts_{args.date}.png"
     fig.tight_layout()
     fig.savefig(out, dpi=120)

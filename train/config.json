@@ -64,8 +64,19 @@
     "select_seed": 0
   },
 
+  "cryceleb": {
+    "use_splits": ["train", "dev"],
+    "split_ratios": {"train": 0.70, "val": 0.15, "test": 0.15},
+    "split_seed": 0,
+    "gap_sec": [0.2, 0.4],
+    "gap_noise_percentile": 5,
+    "caps": {"train": 600, "val": 150, "test": 150},
+    "min_window_dbfs": -55,
+    "seed": 0
+  },
+
   "meta": {
-    "train_cap": {"other": 2400, "siren": 600, "horn": 600},
+    "train_cap": {"other": 2400, "siren": 600, "horn": 600, "baby_cry": 600},
     "own_other_guard_after_sec": 1.0,
     "own_other_guard_before_sec": 0.3,
     "audioset_exclude_low_band": ["K8On7nUJuP8", "PVSHN_arz2k", "QhUa5vXLlCI", "StO32FBBIH4", "y6jT3Q3gyvs", "ypmfbwrqL4s"],

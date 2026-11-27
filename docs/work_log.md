@@ -277,7 +277,38 @@ python train/check_session.py data/raw/knock_1126_s02_desk_phone.wav --expect 10
 - 남은 부족 칸: doorbell test 0·val 0(직접 녹음 split 미정), baby_cry test 35 < 50, val 8 < 20. 시험 A 비어 있음
 - CryCeleb: 허깅페이스 토큰 아직 없음(다시 확인) → 사용자 로그인 대기
 
+**3. CryCeleb2023 받기·정리** (`train/cryceleb.py summary`, 출력 `docs/logs/cryceleb_summary_1127.txt`, 그림 `docs/figures/cryceleb_durations_1127.png`)
+- 사용자가 `hf auth login` 완료 → `huggingface_hub`로 README.md, metadata.csv, audio.zip(572,732,423 바이트) 받음 → 압축 검사 이상 없음, wav 26,093개 풀어 `data/raw_public/cryceleb/audio/`
+- 형식: 모두 16 kHz 모노 16비트. 합계 6.51시간
+- 조각 길이: 중앙값 0.78초, 90% 1.50초, 2초 이상 1,124개(4.3%)
+- 녹음(아기 + 출생 B/퇴원 D) 1,334개, 녹음 하나의 조각 수 중앙값 17, 울음 합계 중앙값 15.8초
+- 메타데이터에 조각 사이 간격(원래 시각)은 없음, 순서만 있음
+- 대역폭: 녹음 1,334개 모두 7.5 kHz 이상(최소 7.8 kHz) → 저음질 지름길 걱정 없음
+- 발견: CryCeleb 시험(test) 부분은 아기 160명이 녹음마다 다른 익명 ID(320개)로 되어 있어 같은 아기의 출생·퇴원 녹음을 묶을 수 없음 → 아기 ID 단위 분할이 깨질 수 있음
+- 2초 창 방법 → 사용자에게 먼저 보고(대기)
+
+**3. CryCeleb 2초 창** (`train/cryceleb.py windows`, 출력 `docs/logs/cryceleb_windows_1127.txt`, 예시 그림 `docs/figures/cryceleb_windows_1127.png`)
+- 사용자 결정(11/27): ① 같은 녹음의 연속 조각을 0.2~0.4초 간격으로 이어 붙여 2초씩 자름(간격은 디지털 무음 대신 그 녹음 20 ms 프레임 RMS 아래 5% 크기의 잡음) ② CryCeleb test 부분은 빼고 train·dev만 씀 ③ 상한 학습 600, 검증·시험 각 150
+- 아기 626명 → 아기 ID 단위 분할 train 438명, val 94명, test 94명
+- 가능한 창: train 7,460, val 1,552, test 1,550 / −55 dBFS 미만이라 뺀 창 492개
+- 고른 창(아기를 돌아가며 하나씩): train 600개(아기 436명), val 150개(94명), test 150개(94명). 창 하나에 든 조각 수 중앙값 2
+- 저장: `wav16k/`(크롬 모양 필터), `orig2s/`(재녹음용 원본 음질 2초), `windows.csv`
+- config: `cryceleb` 절 추가, `meta.train_cap`에 baby_cry 600 추가(ESC-50 24개를 먼저 넣으므로 CryCeleb 학습은 576개)
+- 예시 그림에서 조각 사이 간격이 고른 잡음으로 보임. 간격 잡음은 평평한(흰) 잡음이라 지름길이 될 수 있음 → 4단계 출처별 재현율에서 확인(미확인)
+
+**4. AudioSet 창**: 사용자 결정 = 자동 후보(가장 큰 2초) 그대로. `audioset_window_fix`, `audioset_drop` 비움
+
+**8. 표 다시 만들기** (출력 `docs/logs/build_meta_1127c.txt`, `docs/logs/check_splits_1127c.txt`, 그림 `docs/figures/data_counts_1127.png`)
+- meta.csv 6,793줄, 묶음 2,627개, 여러 분할에 걸친 묶음 0개(통과)
+- 아기 울음: train 600, val 158, test 185 (ESC-50 8 + AudioSet 27 + CryCeleb 150). AudioSet 50개 미만이라 설계서 8절 대안대로 CryCeleb 다른 아기를 시험에 더함 → CryCeleb는 학습·시험 출처가 겹침(아기는 다름)
+- 남은 부족 칸: doorbell val 0, test 0 (직접 녹음 split 미정). 시험 A 비어 있음(재녹음·직접 녹음 회차 필요)
+
+**보고서 정리 중 발견**: 재녹음 흉내 시험(`docs/logs/rerecord_sim_1127.txt`)에 넣은 시계 차이 +40 ppm(122.5초 동안 4.9 ms)을 도구가 +0 ppm으로 잼. 신호음을 10 ms 단위로 찾아서 이 크기는 안 보임 → 시계 보정 동작은 미확인. 실제 재녹음 때 다시 확인
+- `check_splits.py` 그림: 0개 칸도 빨강으로 (초인종 학습 0이 초록으로 보이던 것 고침)
+- `docs/progress/report_w2_1203.md`에 2단계(2.4~2.7, 결과, 문제, 결정, 핵심 숫자, 예상 질문) 추가
+
 ## 다음 할 일
+- 2단계 남은 일(사용자): 초인종·노크 회차 더 녹음, 직접 녹음 회차 분할 정하기, 스피커 재녹음
 - 설계서 7절 다음 단계 진행 (다음 단계 문서를 받으면)
 
 ## 남은 문제
