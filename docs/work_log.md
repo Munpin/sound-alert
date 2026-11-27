@@ -220,6 +220,29 @@ python train/check_session.py data/raw/knock_1126_s02_desk_phone.wav --expect 10
 - horn 600/150/300, siren 600/150/57, other 1,376/148/300 (학습/검증/시험)
 - 한계: horn 검증은 묶음 2개뿐, 차량경적 시험 8개(2초 이상 조건 때문에 더 줄어듦), 개(dog) 검증 0개
 
+**1. ESC-50 2초 창** (`python train/esc50.py` → `data/raw_public/esc50/wav16k/`, `windows.csv`, 출력 `docs/logs/esc50_windows_1127.txt`)
+- 크롬 모양 16 kHz, 가장 큰 2초 창. −55 dBFS 미만 2개 뺌(mouse_click, crickets) → 1,998개
+- 여러 분할에 걸친 묶음 2개 → 파일 수가 많은 쪽으로 옮김: 209698 clock_tick test→val, 234879 hen val→test
+- knock·baby_cry·siren·horn 각 24/8/8, other 1,102/368/368
+
+**5. FSD50K 노크 (확인만)** (`docs/logs/fsd50k_knock_1127.txt`)
+- 라벨 파일(FSD50K.ground_truth.zip, 334,701 바이트)만 받음. Knock: dev 270(train 226, val 44) + eval 103 = 373개. 모두 Door 라벨이 같이 붙음. 받을지는 사용자 결정
+
+**4. AudioSet 아기 울음** (`python train/audioset.py download` / `sheet`, 출력 `docs/logs/audioset_download_1127.txt`, `docs/logs/audioset_bandwidth_1127.txt`)
+- 평가 목록에서 /t/dd00002 정확히 60개
+- 1·2차 실패: yt-dlp가 ffmpeg를 못 찾음(imageio-ffmpeg 실행 파일 이름이 ffmpeg.exe가 아님 → `data/checks/tools/ffmpeg.exe`로 복사, 구간 다운로드는 PATH만 보므로 PATH에도 추가). JS 실행기는 Node.js 지정
+- 3차: **성공 33 / 60**. 실패 27개는 영상 자체가 없음: 정책 위반 삭제 10, 계정 해지 등 7, 비공개 4, 사용 불가 4, 국가 차단 2
+- 50개 미만 → 설계서 8절 대안: ESC-50 울음·CryCeleb 다른 아기를 시험에 더하고 출처 겹침을 기록(예정)
+- 목록 그림 `docs/figures/audioset_babycry_1_1127.png` (초록 상자 = 가장 큰 2초 자동 후보), 후보 표 `data/raw_public/audioset/cry_windows.csv`
+- 대역폭 7 kHz 미만 6개: 8번 4.5, 13번 4.6, 31번 4.9, 32번 5.2, 10번 6.1, 12번 6.8 kHz (저음질 = 아기 울음 지름길 위험)
+
+**7. 직접 녹음 처리** (`train/check_session.py` 수정, 출력 `docs/logs/session_check_real_1127.txt`)
+- `--skip-start/--skip-end`(잘라서 버림) 대신 `--bg-start`, `--other-until`, `--other-from`: 나가기·들어오기 소리와 `--drop` 소리를 버리지 않고 같은 회차의 other로 남김. 구간 목록에 note 칸(walk_out/walk_in/drop/gap) 추가, 파일 전체를 빈틈없이 덮음
+- `doorbell_1126_s01_desk_phone_t2.wav` → `doorbell_1126_s01_desk_phone.wav`, meta.csv note에 다시 녹음한 사실과 예전 순서 기록
+- 다시 확인: 초인종 10/10 (나가기 2, 들어오기 1 → other), 노크 10/10 (나가기 5, 들어오기 1, 수동 제외 2 → other)
+
+**3. CryCeleb**: 허깅페이스 로그인 토큰 없음 → 사용자 로그인 대기
+
 ## 다음 할 일
 - 설계서 7절 다음 단계 진행 (다음 단계 문서를 받으면)
 

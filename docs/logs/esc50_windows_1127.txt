@@ -1,0 +1,15 @@
+# python train/esc50.py  (실행: 2026-11-27 15:15)
+ESC-50 2000개, 묶음 1524개
+여러 분할에 걸친 묶음 2개 → 옮긴 파일 2개
+  esc50:209698 5-209698-A-38.wav (clock_tick) test → val
+  esc50:234879 4-234879-A-6.wav (hen) val → test
+저장: 1998개 → data/raw_public/esc50/wav16k/, windows.csv
+너무 조용해서 뺀 창(< -55.0 dBFS): 2개 [('1-99958-A-31.wav', 'mouse_click', -55.1), ('2-110613-A-13.wav', 'crickets', -76.2)]
+
+== 클래스 × 분할 ==
+  knock     train   24  val    8  test    8
+  baby_cry  train   24  val    8  test    8
+  siren     train   24  val    8  test    8
+  horn      train   24  val    8  test    8
+  other     train 1102  val  368  test  368
+여러 분할에 걸친 묶음(옮긴 뒤): 0개

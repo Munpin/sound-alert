@@ -10,25 +10,32 @@
                      --expect와 개수가 다르면 크게 경고한다.
                      other(배경만) 파일은 구간을 찾지 않고 길이와 평균 음량만 본다.
   5) 그림            data/checks/<파일이름>.png  (음량 곡선 + 스펙트로그램 + 찾은 구간)
-  6) 구간 목록       data/segments/<파일이름>.csv (start,end,label). 구간 사이와 앞 배경은 other
+  6) 구간 목록       data/segments/<파일이름>.csv (start,end,label,note). 파일 전체를 덮는다.
+                     구간 사이·앞 배경·나가고 들어오는 소리·수동 제외한 소리는 모두 같은 회차의 other
   7) meta.csv        data/meta.csv에 이 파일의 줄이 있는지
   화면에 나온 내용은 data/checks/<파일이름>.txt에도 저장한다.
 
+녹음 순서 (2단계부터): 녹음 시작 → 가만히 30초 → 나가기 → 벨·노크 10번 → 들어오기 → 정지
+  처음 25초를 깨끗한 배경으로 쓴다. 나가고 들어오는 발소리·문소리는 버리지 않고 other로 남긴다
+  (노크와 헷갈리기 쉬운 소리라 귀중하다).
+
 사용법
-  python train/check_session.py data/raw/doorbell_1126_s01_desk_phone.wav --expect 10
+  python train/check_session.py data/raw/doorbell_1127_s03_bed_phone.wav --expect 10 --other-until 40 --other-from 150
 
 주요 옵션
   --bg-seconds 25   앞부분 배경으로 볼 길이(초). 실제 배경은 약 30초인데, 첫 소리를 배경에
                     섞지 않으려고 조금 짧게 잡는다.
   --margin 12       '확실히 커졌다'의 기준: 배경 평소 음량(중앙값)보다 몇 dB 커야 하는지
   --merge-gap       이 시간(초)보다 가까운 구간은 하나로 묶는다. 기본: 초인종 2.0, 노크 1.0
-  --skip-start 15   앞 15초를 잘라 내고 본다 (녹음 시작 후 현관 밖으로 나가는 발소리·문소리)
-  --skip-end 10     뒤 10초를 잘라 내고 본다 (다시 들어와 정지 버튼 누르는 소리)
-                    잘라 낸 부분은 배경 계산·구간 찾기·구간 목록에서 모두 빠진다(학습에 안 씀).
-  --drop 3,4        그림을 보고 소리가 아닌 것으로 판단한 구간 번호를 other로 돌린다.
+  --bg-start 0      배경 계산을 시작할 시각(초). 예전 순서(시작하자마자 나감) 파일은 나간 뒤 시각을 준다
+  --other-until 40  이 시각(초)보다 먼저 시작한 소리는 other (나가는 소리)
+  --other-from 150  이 시각(초) 뒤에 시작한 소리는 other (들어오는 소리)
+  --drop 3,4        그림을 보고 벨·노크가 아니라고 판단한 구간 번호를 other로 돌린다
+  처음 실행할 때는 옵션 없이 돌려 그림을 보고, 나가기·들어오기 시각을 넣어 다시 돌린다.
 """
 
 import argparse
+import collections
 import csv
 import re
 import sys
@@ -158,16 +165,16 @@ def pad_events(events, lo, hi, rule):
     return out
 
 
-def segments_table(events, lo, hi, label):
-    """찾은 구간 + 그 사이(other)로 lo~hi초를 덮는 목록. 잘라 낸 앞뒤(--skip-start/--skip-end)는 넣지 않는다."""
-    rows, t = [], lo
-    for s, e in events:
+def segments_table(events, dur):
+    """events: [(시작, 끝, 라벨, 메모)] 시간순. 사이를 other로 채워 0~dur초를 빈틈없이 덮는다."""
+    rows, t = [], 0.0
+    for s, e, lab, note in events:
         if s - t > 1e-6:
-            rows.append((t, s, "other"))
-        rows.append((s, e, label))
+            rows.append((t, s, "other", "gap"))
+        rows.append((s, e, lab, note))
         t = e
-    if hi - t > 1e-6:
-        rows.append((t, hi, "other"))
+    if dur - t > 1e-6:
+        rows.append((t, dur, "other", "gap"))
     return rows
 
 
@@ -193,7 +200,7 @@ def check_meta(meta_path, file_name, info):
     return True, f"있음 (group_id {r.get('group_id')}, place {r.get('place')}, background {r.get('background')}, phone_state {r.get('phone_state')})"
 
 
-def draw(path, title, x, rate, level, starts, spec, lo, bg_end, hi, th, events):
+def draw(path, title, x, rate, level, starts, spec, bg_start, bg_end, zones, th, events, others):
     plt = load_pyplot()
     db, freqs, times = spec
     dur = len(x) / rate
@@ -201,12 +208,12 @@ def draw(path, title, x, rate, level, starts, spec, lo, bg_end, hi, th, events):
 
     ax = axes[0]
     ax.plot(starts + N_FFT / 2 / rate, level, lw=0.7, color="#1f5fbf", label=f"음량 ({BAND[0]}~{BAND[1]} Hz)")
-    if bg_end > lo:
-        ax.axvspan(lo, bg_end, color="#9aa3ad", alpha=0.18, label="배경으로 쓴 구간")
-    if lo > 0:
-        ax.axvspan(0, lo, color="#5d4037", alpha=0.35, label="잘라 낸 구간 (안 씀)")
-    if hi < dur:
-        ax.axvspan(hi, dur, color="#5d4037", alpha=0.35, label=None if lo > 0 else "잘라 낸 구간 (안 씀)")
+    if bg_end > bg_start:
+        ax.axvspan(bg_start, bg_end, color="#9aa3ad", alpha=0.18, label="배경으로 쓴 구간")
+    for j, (a, b) in enumerate(zones):
+        ax.axvspan(a, b, color="#8d6e63", alpha=0.18, label="나가기·들어오기 (other)" if j == 0 else None)
+    for j, (s_, e_) in enumerate(others):
+        ax.axvspan(s_, e_, color="#ff9100", alpha=0.35, label="other로 돌린 소리" if j == 0 else None)
     if th:
         ax.axhline(th["on"], color="#c62828", lw=0.9, ls="--", label=f"켜짐 기준 {th['on']:.1f} dB")
         ax.axhline(th["off"], color="#b26a00", lw=0.9, ls=":", label=f"꺼짐 기준 {th['off']:.1f} dB")
@@ -225,10 +232,10 @@ def draw(path, title, x, rate, level, starts, spec, lo, bg_end, hi, th, events):
         ax.axvline(s, color="#00e676", lw=1.0)
         ax.axvline(e, color="#00e676", lw=1.0, ls="--")
         ax.text((s + e) / 2, 7.4, str(k), color="#00e676", ha="center", fontsize=9, fontweight="bold")
-    if bg_end > lo:
+    if bg_end > bg_start:
         ax.axvline(bg_end, color="#ffffff", lw=0.8, ls=":")
-    for v in ([lo] if lo > 0 else []) + ([hi] if hi < dur else []):
-        ax.axvline(v, color="#ff9100", lw=1.2)
+    for s_, e_ in others:
+        ax.axvspan(s_, e_, ymin=0.92, ymax=1.0, color="#ff9100", alpha=0.9)
     ax.set_ylabel("주파수 (kHz)")
     ax.set_xlabel("시간 (초)")
     ax.set_xlim(0, dur)
@@ -246,8 +253,9 @@ def main():
     ap.add_argument("--bg-seconds", type=float, default=25.0, help="앞부분 배경으로 볼 길이(초), 기본 25")
     ap.add_argument("--margin", type=float, default=12.0, help="배경 중앙값보다 몇 dB 커야 소리로 볼지, 기본 12")
     ap.add_argument("--merge-gap", type=float, default=None, help="이보다 가까운 구간은 하나로 (초)")
-    ap.add_argument("--skip-start", type=float, default=0.0, help="앞에서 잘라 낼 초 (나가는 소리 등)")
-    ap.add_argument("--skip-end", type=float, default=0.0, help="뒤에서 잘라 낼 초 (들어오는 소리 등)")
+    ap.add_argument("--bg-start", type=float, default=0.0, help="배경 계산 시작 시각(초), 기본 0")
+    ap.add_argument("--other-until", type=float, default=None, help="이 시각 전에 시작한 소리는 other (나가기)")
+    ap.add_argument("--other-from", type=float, default=None, help="이 시각 뒤에 시작한 소리는 other (들어오기)")
     ap.add_argument("--drop", type=str, default="", help="other로 돌릴 구간 번호, 쉼표로 (예: 3,4)")
     ap.add_argument("--meta", type=Path, default=ROOT / "data" / "meta.csv")
     ap.add_argument("--out-dir", type=Path, default=ROOT / "data", help="checks/, segments/를 만들 곳")
@@ -290,60 +298,72 @@ def main():
     ok_all &= clip_ok
     out(f"[{'통과' if clip_ok else '문제'}] 클리핑: 잘린 샘플 {at_limit}개, 최댓값 {peak} / 32768 ({peak_db:.1f} dBFS)")
 
-    # 4) 소리 구간 (앞뒤 잘라 낸 부분은 빼고 lo~hi초만 본다)
+    # 4) 소리 구간 (파일 전체에서 찾고, 나가기·들어오기·수동 제외는 other로 표시)
     level, starts, spec = frame_level_db(x, rate)
-    lo, hi = args.skip_start, dur - args.skip_end
-    if args.skip_start < 0 or args.skip_end < 0 or hi - lo < 1.0:
-        raise SystemExit(f"--skip-start/--skip-end가 잘못됨: 남는 길이 {hi - lo:.1f}초")
-    f0, f1 = int(round(lo * rate / HOP)), int(round(hi * rate / HOP))
-    use_level = level[f0:f1]
-    if lo > 0 or hi < dur:
-        out(f"[정보] 잘라 냄: 앞 {lo:.1f}초, 뒤 {dur - hi:.1f}초 → {lo:.1f}~{hi:.1f}초만 봄 (잘라 낸 부분은 구간 목록에도 안 넣음)")
-    events, th = [], None
-    bg_end = lo
+    events, others, th = [], [], None          # events: 이 클래스 구간, others: other로 돌린 구간
+    zones = []
+    if args.other_until:
+        zones.append((0.0, args.other_until))
+    if args.other_from:
+        zones.append((args.other_from, dur))
+    bg_start = args.bg_start
+    bg_end = bg_start
     if cls == "other":
-        seg = x[int(lo * rate):int(hi * rate)]
-        rms_db = 10 * np.log10(np.mean(seg ** 2) + 1e-12)
-        out(f"[정보] 배경 파일: 구간을 찾지 않음. 길이 {hi - lo:.2f}초, 평균 음량 {rms_db:.1f} dBFS, "
-            f"10 ms 음량 중앙값 {np.median(use_level):.1f} dB (상위 5% {np.percentile(use_level, 95):.1f} dB)")
+        rms_db = 10 * np.log10(np.mean(x ** 2) + 1e-12)
+        out(f"[정보] 배경 파일: 구간을 찾지 않음. 길이 {dur:.2f}초, 평균 음량 {rms_db:.1f} dBFS, "
+            f"10 ms 음량 중앙값 {np.median(level):.1f} dB (상위 5% {np.percentile(level, 95):.1f} dB)")
     else:
         rule = dict(RULES.get(cls, DEFAULT_RULE))
         if args.merge_gap is not None:
             rule["merge_gap"] = args.merge_gap
-        bg_len = min(args.bg_seconds, (hi - lo) * 0.5)
+        bg_len = min(args.bg_seconds, (dur - bg_start) * 0.5)
         if bg_len < args.bg_seconds:
             out(f"[경고] 파일이 짧아 배경을 {bg_len:.1f}초만 씀 (요청 {args.bg_seconds:.0f}초)")
-        bg_end = lo + bg_len
+        bg_end = bg_start + bg_len
+        f0 = int(round(bg_start * rate / HOP))
         bg_frames = max(1, int(bg_len * rate / HOP))
-        raw, th = find_events(use_level, rate, bg_frames, args.margin, rule)
-        shift = f0 * HOP / rate
-        raw = [[s + shift, e + shift] for s, e in raw]
-        events = pad_events(raw, lo, hi, rule)
-        out(f"[정보] 배경 {lo:.1f}~{bg_end:.1f}초: 음량 중앙값 {th['bg_med']:.1f} dB, 상위 5% {th['bg_p95']:.1f} dB "
+        # 배경은 bg_start부터 재고(앞에 붙여 넣어 기준만 계산), 구간은 파일 전체에서 찾는다
+        lev = np.concatenate([level[f0:f0 + bg_frames], level])
+        raw, th = find_events(lev, rate, bg_frames, args.margin, rule)
+        off = bg_frames * HOP / rate
+        raw = [[max(0.0, s_ - off), e_ - off] for s_, e_ in raw if e_ - off > 0]
+        found = pad_events(raw, 0.0, dur, rule)
+        out(f"[정보] 배경 {bg_start:.1f}~{bg_end:.1f}초: 음량 중앙값 {th['bg_med']:.1f} dB, 상위 5% {th['bg_p95']:.1f} dB "
             f"→ 켜짐 기준 {th['on']:.1f} dB, 꺼짐 기준 {th['off']:.1f} dB")
         out(f"[정보] 묶기 규칙({cls}): {rule['merge_gap']}초 안의 소리는 하나로, {rule['min_dur']}초보다 짧으면 버림")
-        out("")
-        out(f"  번호   시작(초)   끝(초)   길이(초)  최대 음량(배경보다)  앞 구간과 간격(초)")
-        prev = None
-        for k, (s, e) in enumerate(events, 1):
-            i0, i1 = int(s * rate / HOP), max(int(s * rate / HOP) + 1, int(e * rate / HOP))
-            top = level[i0:i1].max() - th["bg_med"]
-            gap = f"{s - prev:8.1f}" if prev is not None else "       -"
-            flag = "  ← 배경 구간 안" if s < bg_end else ""
-            if k in drop:
-                flag += "  → other로 돌림 (--drop)"
-            out(f"  {k:4d} {s:9.2f} {e:9.2f} {e - s:9.2f}        +{top:5.1f} dB        {gap}{flag}")
-            prev = s
-        out("")
-        bad = [k for k in drop if not 1 <= k <= len(events)]
+        if zones:
+            out("[정보] other 구간(나가기·들어오기): " + ", ".join(f"{a:.1f}~{b:.1f}초" for a, b in zones))
+        bad = [k for k in drop if not 1 <= k <= len(found)]
         if bad:
-            raise SystemExit(f"--drop 번호 {bad}가 구간 범위(1~{len(events)}) 밖")
-        if drop:
-            out(f"[정보] --drop: 구간 {sorted(drop)}번을 other로 돌림 → {cls} 구간 {len(events) - len(drop)}개")
-            events = [ev for k, ev in enumerate(events, 1) if k not in drop]
-        in_bg = sum(1 for s, _ in events if s < bg_end)
+            raise SystemExit(f"--drop 번호 {bad}가 구간 범위(1~{len(found)}) 밖")
+        out("")
+        out("  번호   시작(초)   끝(초)   길이(초)  최대 음량(배경보다)  앞 구간과 간격(초)")
+        prev = None
+        for k, (s_, e_) in enumerate(found, 1):
+            i0, i1 = int(s_ * rate / HOP), max(int(s_ * rate / HOP) + 1, int(e_ * rate / HOP))
+            top = level[i0:i1].max() - th["bg_med"]
+            gap = f"{s_ - prev:8.1f}" if prev is not None else "       -"
+            if k in drop:
+                note, flag = "drop", "  → other (--drop)"
+            elif args.other_until is not None and s_ < args.other_until:
+                note, flag = "walk_out", "  → other (나가기)"
+            elif args.other_from is not None and s_ >= args.other_from:
+                note, flag = "walk_in", "  → other (들어오기)"
+            else:
+                note, flag = "", ""
+                if bg_start <= s_ < bg_end:
+                    flag = "  ← 배경 구간 안"
+            (others if note else events).append((s_, e_, note))
+            out(f"  {k:4d} {s_:9.2f} {e_:9.2f} {e_ - s_:9.2f}        +{top:5.1f} dB        {gap}{flag}")
+            prev = s_
+        out("")
+        n_other = collections.Counter(n for *_, n in others)
+        if others:
+            out(f"[정보] other로 표시: 나가기 {n_other['walk_out']}개, 들어오기 {n_other['walk_in']}개, "
+                f"수동 제외 {n_other['drop']}개 → {cls} 구간 {len(events)}개")
+        in_bg = sum(1 for s_, *_ in events if bg_start <= s_ < bg_end)
         if in_bg:
-            out(f"[경고] 배경으로 쓴 {lo:.1f}~{bg_end:.1f}초 안에서 소리 {in_bg}개를 찾음. 배경에 큰 소리가 있었는지 확인")
+            out(f"[경고] 배경으로 쓴 {bg_start:.1f}~{bg_end:.1f}초 안에서 소리 {in_bg}개를 찾음. 배경에 큰 소리가 있었는지 확인")
         if args.expect is None:
             out(f"[정보] 찾은 구간: {len(events)}개 (--expect를 주면 개수를 비교)")
         elif len(events) == args.expect:
@@ -353,30 +373,32 @@ def main():
             bar = "!" * 60
             out(bar)
             out(f"!!  [경고] 찾은 구간 {len(events)}개 ≠ 기대 {args.expect}개")
-            out("!!  그림에서 빠진 소리나 잘못 잡은 잡음을 확인하세요.")
+            out("!!  그림에서 나가기·들어오기 시각을 보고 --other-until / --other-from을 주세요.")
             out("!!  소리가 작아서 빠졌으면 --margin을 낮추고(예: 8), 하나가 둘로 나뉘었으면 --merge-gap을 늘리세요.")
             out(bar)
 
     # 5) 그림
     png = args.out_dir / "checks" / f"{stem}.png"
-    count_txt = f"찾은 구간 {len(events)}개" + (f" / 기대 {args.expect}개" if args.expect is not None else "")
+    count_txt = (f"{cls} {len(events)}개" + (f" / 기대 {args.expect}개" if args.expect is not None else "")
+                 + (f" · other로 돌림 {len(others)}개" if others else ""))
     title = f"{name} · {dur:.1f}초 · 최대 {peak_db:.1f} dBFS · 잘림 {at_limit}개" + ("" if cls == "other" else f" · {count_txt}")
-    draw(png, title, x, rate, level, starts, spec, lo, bg_end, hi, th, events)
+    draw(png, title, x, rate, level, starts, spec, bg_start, bg_end, zones, th,
+         [(a, b) for a, b, _ in events], [(a, b) for a, b, _ in others])
     out(f"[저장] 그림: {png}")
 
-    # 6) 구간 목록
+    # 6) 구간 목록 (파일 전체, other 포함)
     seg_path = args.out_dir / "segments" / f"{stem}.csv"
     seg_path.parent.mkdir(parents=True, exist_ok=True)
-    rows = segments_table(events, lo, hi, cls if cls in CLASSES else "unknown")
+    label = cls if cls in CLASSES else "unknown"
+    allev = sorted([(a, b, label, "") for a, b, _ in events] + [(a, b, "other", n) for a, b, n in others])
+    rows = segments_table(allev, dur)
     with open(seg_path, "w", encoding="utf-8", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["start", "end", "label"])
-        for s, e, lab in rows:
-            w.writerow([f"{s:.3f}", f"{e:.3f}", lab])
-    if cls == "other":
-        out(f"[저장] 구간 목록: {seg_path} ({lo:.1f}~{hi:.1f}초 other 1줄)")
-    else:
-        out(f"[저장] 구간 목록: {seg_path} ({len(rows)}줄: {cls} {len(events)}개, 사이 other {len(rows) - len(events)}개)")
+        w.writerow(["start", "end", "label", "note"])
+        for s_, e_, lab, note in rows:
+            w.writerow([f"{s_:.3f}", f"{e_:.3f}", lab, note])
+    n_cls = sum(1 for r in rows if r[2] == label and label != "other")
+    out(f"[저장] 구간 목록: {seg_path} ({len(rows)}줄: {label} {n_cls}개, other {len(rows) - n_cls}개)")
 
     # 7) meta.csv
     meta_ok, meta_msg = check_meta(args.meta, name, info)

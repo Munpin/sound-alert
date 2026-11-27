@@ -1,0 +1,12 @@
+# FSD50K 라벨 파일만 받아 Knock 개수 세기 (실행: 2026-11-27 15:01)
+# 받은 파일: https://zenodo.org/records/4060432/files/FSD50K.ground_truth.zip (334,701 바이트, 오디오 없음)
+62,Door,/m/02dgv
+63,Doorbell,/m/03wwcy
+106,Knock,/m/07r4wb8
+155,Sliding_door,/m/02y_763
+dev.csv 전체 40966 Knock 270 분할 {'val': 44, 'train': 226}
+  같이 붙은 라벨 [('Door', 270), ('Domestic_sounds_and_home_sounds', 270), ('Wood', 77), ('Slam', 3), ('Human_voice', 2), ('Tap', 2)]
+  (참고) Doorbell 107
+eval.csv 전체 10231 Knock 103 분할 {'eval': 103}
+  같이 붙은 라벨 [('Door', 103), ('Domestic_sounds_and_home_sounds', 103), ('Wood', 26), ('Human_group_actions', 6), ('Rattle', 5), ('Tools', 4)]
+  (참고) Doorbell 37

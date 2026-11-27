@@ -1,0 +1,118 @@
+# python train/audioset.py download  (실행: 2026-11-27 15:07, yt-dlp 2026.11.23, ffmpeg를 PATH에 더한 뒤)
+ERROR: [youtube] 2TV2DW0bzBg: This video is unavailable
+ERROR: [youtube] 2fKgYlCx_As: Private video. If the owner of this video has granted you access, please sign in. Use --cookies-from-browser or --cookies for the authentication. See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies. Also see  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies  for tips on effectively exporting YouTube cookies
+ERROR: [youtube] 3KwulXmBX-8: This video has been removed for violating YouTube's policy on harassment and bullying
+ERROR: [youtube] 6EytmSl0VY8: Video unavailable. It was blocked due to the claimed content by KBS Media.
+ERROR: [youtube] 8hE1DIB6wfw: This video is unavailable
+ERROR: [youtube] Bk_xS_fKCpk: Video unavailable. This video is no longer available because the YouTube account associated with this video has been terminated.
+ERROR: [youtube] E8SPrMj1cto: This video has been removed for violating YouTube's Terms of Service
+ERROR: [youtube] HQywkRYnWSk: Video unavailable. It was blocked due to the claimed content by Paramount Global (PMN).
+ERROR: [youtube] IOpMfRxQdrs: Private video. If the owner of this video has granted you access, please sign in. Use --cookies-from-browser or --cookies for the authentication. See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies. Also see  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies  for tips on effectively exporting YouTube cookies
+ERROR: [youtube] LfXdaE7ph_I: This video has been removed for violating YouTube's Terms of Service
+ERROR: [youtube] MK6Gfm0jElc: Video unavailable. This video is no longer available because the YouTube account associated with this video has been terminated.
+ERROR: [youtube] MYtq46rNsCA: Video unavailable. This video is no longer available because the YouTube account associated with this video has been terminated.
+ERROR: [youtube] QyJ4Z0jRJ20: Private video. If the owner of this video has granted you access, please sign in. Use --cookies-from-browser or --cookies for the authentication. See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies. Also see  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies  for tips on effectively exporting YouTube cookies
+ERROR: [youtube] UFcUTwPlFAU: Private video. If the owner of this video has granted you access, please sign in. Use --cookies-from-browser or --cookies for the authentication. See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies. Also see  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies  for tips on effectively exporting YouTube cookies
+ERROR: [youtube] UVCxSYZ2Now: This video has been removed for violating YouTube's Community Guidelines
+ERROR: [youtube] Xg9hTAPBwi8: This video has been removed for violating YouTube's Terms of Service
+ERROR: [youtube] Yffe5CIluko: Video unavailable. This video is no longer available because the YouTube account associated with this video has been terminated.
+ERROR: [youtube] b8Qv5KWswiI: This video is unavailable
+ERROR: [youtube] doS_7NMUGjY: Video unavailable. This video is no longer available because the YouTube account associated with this video has been terminated.
+ERROR: [youtube] hC7sSMWLwDo: Video unavailable. This video is no longer available because the YouTube account associated with this video has been terminated.
+ERROR: [youtube] jbEYZDagytA: This video has been removed for violating YouTube's Terms of Service
+ERROR: [youtube] pmKplTyqapo: This video has been removed for violating YouTube's Community Guidelines
+ERROR: [youtube] ss8q2-6yhxA: This video has been removed for violating YouTube's Terms of Service
+ERROR: [youtube] tk4s-nlhmEQ: Video unavailable. This video is no longer available because the YouTube account associated with this video has been terminated.
+ERROR: [youtube] wVVBhbrnj9s: This video has been removed for violating YouTube's Terms of Service
+ERROR: [youtube] y7Su-4RWeU0: This video has been removed for violating YouTube's Terms of Service
+ERROR: [youtube] yWlJ-pdbaoM: This video is unavailable
+평가 목록에서 /t/dd00002 영상 60개
+  [ 1] 2TV2DW0bzBg 실패: [youtube] 2TV2DW0bzBg: This video is unavailable
+  [ 2] 2eWobSpugTw 성공 (원본 48000 Hz 2ch 9.71초 → 16k 9.71초)
+  [ 3] 2fKgYlCx_As 실패: [youtube] 2fKgYlCx_As: Private video. If the owner of this video has granted you access, please sign in. Use --cookies-from-browser or --cookies for the authent
+  [ 4] 3KwulXmBX-8 실패: [youtube] 3KwulXmBX-8: This video has been removed for violating YouTube's policy on harassment and bullying
+  [ 5] 4KxLSx-EhHI 성공 (원본 44100 Hz 2ch 8.68초 → 16k 8.68초)
+  [ 6] 5Eu8C0010X0 성공 (원본 44100 Hz 2ch 9.57초 → 16k 9.57초)
+  [ 7] 6EytmSl0VY8 실패: [youtube] 6EytmSl0VY8: Video unavailable. It was blocked due to the claimed content by KBS Media.
+  [ 8] 8hE1DIB6wfw 실패: [youtube] 8hE1DIB6wfw: This video is unavailable
+  [ 9] 9IuFwl2AtcI 성공 (원본 48000 Hz 2ch 10.00초 → 16k 10.00초)
+  [10] ABCUrbSmLuo 성공 (원본 48000 Hz 2ch 10.00초 → 16k 10.00초)
+  [11] Bk_xS_fKCpk 실패: [youtube] Bk_xS_fKCpk: Video unavailable. This video is no longer available because the YouTube account associated with this video has been terminated.
+  [12] E8SPrMj1cto 실패: [youtube] E8SPrMj1cto: This video has been removed for violating YouTube's Terms of Service
+  [13] GH4Ae3x12Lk 성공 (원본 48000 Hz 2ch 9.00초 → 16k 9.00초)
+  [14] HQywkRYnWSk 실패: [youtube] HQywkRYnWSk: Video unavailable. It was blocked due to the claimed content by Paramount Global (PMN).
+  [15] IOpMfRxQdrs 실패: [youtube] IOpMfRxQdrs: Private video. If the owner of this video has granted you access, please sign in. Use --cookies-from-browser or --cookies for the authent
+  [16] J30XVELrIEM 성공 (원본 48000 Hz 2ch 10.00초 → 16k 10.00초)
+  [17] K8On7nUJuP8 성공 (원본 44100 Hz 2ch 10.01초 → 16k 10.00초)
+  [18] LfXdaE7ph_I 실패: [youtube] LfXdaE7ph_I: This video has been removed for violating YouTube's Terms of Service
+  [19] MK6Gfm0jElc 실패: [youtube] MK6Gfm0jElc: Video unavailable. This video is no longer available because the YouTube account associated with this video has been terminated.
+  [20] MYtq46rNsCA 실패: [youtube] MYtq46rNsCA: Video unavailable. This video is no longer available because the YouTube account associated with this video has been terminated.
+  [21] P02Zdk3amjk 성공 (원본 48000 Hz 2ch 10.00초 → 16k 10.00초)
+  [22] PVSHN_arz2k 성공 (원본 44100 Hz 2ch 9.73초 → 16k 9.73초)
+  [23] PyXQVNaAbHc 성공 (원본 48000 Hz 2ch 10.00초 → 16k 10.00초)
+  [24] QhUa5vXLlCI 성공 (원본 48000 Hz 2ch 10.00초 → 16k 10.00초)
+  [25] QyJ4Z0jRJ20 실패: [youtube] QyJ4Z0jRJ20: Private video. If the owner of this video has granted you access, please sign in. Use --cookies-from-browser or --cookies for the authent
+  [26] StO32FBBIH4 성공 (원본 48000 Hz 2ch 9.00초 → 16k 9.00초)
+  [27] UFcUTwPlFAU 실패: [youtube] UFcUTwPlFAU: Private video. If the owner of this video has granted you access, please sign in. Use --cookies-from-browser or --cookies for the authent
+  [28] UVCxSYZ2Now 실패: [youtube] UVCxSYZ2Now: This video has been removed for violating YouTube's Community Guidelines
+  [29] XZ5oHxjfHKY 성공 (원본 48000 Hz 2ch 10.00초 → 16k 10.00초)
+  [30] Xg9hTAPBwi8 실패: [youtube] Xg9hTAPBwi8: This video has been removed for violating YouTube's Terms of Service
+  [31] Yffe5CIluko 실패: [youtube] Yffe5CIluko: Video unavailable. This video is no longer available because the YouTube account associated with this video has been terminated.
+  [32] Zm-sQnazFAQ 성공 (원본 48000 Hz 2ch 10.00초 → 16k 10.00초)
+  [33] ZnGO4o9SqHY 성공 (원본 44100 Hz 2ch 10.01초 → 16k 10.00초)
+  [34] b8Qv5KWswiI 실패: [youtube] b8Qv5KWswiI: This video is unavailable
+  [35] dIIiaO12I5Q 성공 (원본 48000 Hz 2ch 9.86초 → 16k 9.86초)
+  [36] doS_7NMUGjY 실패: [youtube] doS_7NMUGjY: Video unavailable. This video is no longer available because the YouTube account associated with this video has been terminated.
+  [37] eXkDr7HlT0k 성공 (원본 48000 Hz 2ch 9.58초 → 16k 9.58초)
+  [38] g9Qah25_yH0 성공 (원본 48000 Hz 2ch 8.97초 → 16k 8.97초)
+  [39] hC7sSMWLwDo 실패: [youtube] hC7sSMWLwDo: Video unavailable. This video is no longer available because the YouTube account associated with this video has been terminated.
+  [40] iiAK295_-jk 성공 (원본 48000 Hz 2ch 9.00초 → 16k 9.00초)
+  [41] jHs2_FLtd9U 성공 (원본 48000 Hz 2ch 10.00초 → 16k 10.00초)
+  [42] jPIEgoO4cL0 성공 (원본 48000 Hz 2ch 9.77초 → 16k 9.77초)
+  [43] jbEYZDagytA 실패: [youtube] jbEYZDagytA: This video has been removed for violating YouTube's Terms of Service
+  [44] jr2kxASSRBY 성공 (원본 48000 Hz 2ch 10.00초 → 16k 10.00초)
+  [45] nzwmPWAAQFg 성공 (원본 44100 Hz 2ch 10.01초 → 16k 10.00초)
+  [46] oPzAaB7LoqU 성공 (원본 44100 Hz 2ch 10.01초 → 16k 10.00초)
+  [47] pCVVjcjd1yM 성공 (원본 48000 Hz 2ch 10.00초 → 16k 10.00초)
+  [48] pP0fJ64QFHE 성공 (원본 48000 Hz 2ch 10.00초 → 16k 10.00초)
+  [49] pmKplTyqapo 실패: [youtube] pmKplTyqapo: This video has been removed for violating YouTube's Community Guidelines
+  [50] qMbGFWz9who 성공 (원본 48000 Hz 2ch 10.00초 → 16k 10.00초)
+  [51] rkaM1yOncZ4 성공 (원본 44100 Hz 2ch 7.01초 → 16k 7.01초)
+  [52] s_Le6PwhssI 성공 (원본 48000 Hz 2ch 10.00초 → 16k 10.00초)
+  [53] ss8q2-6yhxA 실패: [youtube] ss8q2-6yhxA: This video has been removed for violating YouTube's Terms of Service
+  [54] tk4s-nlhmEQ 실패: [youtube] tk4s-nlhmEQ: Video unavailable. This video is no longer available because the YouTube account associated with this video has been terminated.
+  [55] wVVBhbrnj9s 실패: [youtube] wVVBhbrnj9s: This video has been removed for violating YouTube's Terms of Service
+  [56] y6jT3Q3gyvs 성공 (원본 44100 Hz 2ch 9.57초 → 16k 9.57초)
+  [57] y7Su-4RWeU0 실패: [youtube] y7Su-4RWeU0: This video has been removed for violating YouTube's Terms of Service
+  [58] yWlJ-pdbaoM 실패: [youtube] yWlJ-pdbaoM: This video is unavailable
+  [59] ypmfbwrqL4s 성공 (원본 48000 Hz 2ch 10.00초 → 16k 10.00초)
+  [60] z15CKEUxkEg 성공 (원본 48000 Hz 2ch 10.00초 → 16k 10.00초)
+
+성공 33 / 60
+  실패 1개: [youtube] 2TV2DW0bzBg: This video is unavailable
+  실패 1개: [youtube] 2fKgYlCx_As: Private video. If the owner of this v
+  실패 1개: [youtube] 3KwulXmBX-8: This video has been removed for viola
+  실패 1개: [youtube] 6EytmSl0VY8: Video unavailable. It was blocked due
+  실패 1개: [youtube] 8hE1DIB6wfw: This video is unavailable
+  실패 1개: [youtube] Bk_xS_fKCpk: Video unavailable. This video is no l
+  실패 1개: [youtube] E8SPrMj1cto: This video has been removed for viola
+  실패 1개: [youtube] HQywkRYnWSk: Video unavailable. It was blocked due
+  실패 1개: [youtube] IOpMfRxQdrs: Private video. If the owner of this v
+  실패 1개: [youtube] LfXdaE7ph_I: This video has been removed for viola
+  실패 1개: [youtube] MK6Gfm0jElc: Video unavailable. This video is no l
+  실패 1개: [youtube] MYtq46rNsCA: Video unavailable. This video is no l
+  실패 1개: [youtube] QyJ4Z0jRJ20: Private video. If the owner of this v
+  실패 1개: [youtube] UFcUTwPlFAU: Private video. If the owner of this v
+  실패 1개: [youtube] UVCxSYZ2Now: This video has been removed for viola
+  실패 1개: [youtube] Xg9hTAPBwi8: This video has been removed for viola
+  실패 1개: [youtube] Yffe5CIluko: Video unavailable. This video is no l
+  실패 1개: [youtube] b8Qv5KWswiI: This video is unavailable
+  실패 1개: [youtube] doS_7NMUGjY: Video unavailable. This video is no l
+  실패 1개: [youtube] hC7sSMWLwDo: Video unavailable. This video is no l
+  실패 1개: [youtube] jbEYZDagytA: This video has been removed for viola
+  실패 1개: [youtube] pmKplTyqapo: This video has been removed for viola
+  실패 1개: [youtube] ss8q2-6yhxA: This video has been removed for viola
+  실패 1개: [youtube] tk4s-nlhmEQ: Video unavailable. This video is no l
+  실패 1개: [youtube] wVVBhbrnj9s: This video has been removed for viola
+  실패 1개: [youtube] y7Su-4RWeU0: This video has been removed for viola
+  실패 1개: [youtube] yWlJ-pdbaoM: This video is unavailable
