@@ -61,7 +61,15 @@
   </section>
 
   <section>
-    <h2>4. 결과 저장</h2>
+    <h2>4. 크롬 16 kHz 변환 모양 (백색 잡음)</h2>
+    <div class="muted">48 kHz 백색 잡음을 MediaStream으로 만들어 16 kHz AudioContext로 받습니다(마이크와 같은 경로). 스피커로 소리는 나지 않습니다. 약 21초 걸립니다.</div>
+    <button id="rsBtn" style="margin-top:8px">측정 시작</button>
+    <div id="rsStatus" class="muted" style="margin-top:6px"></div>
+    <table id="rsTable" style="margin-top:8px"></table>
+  </section>
+
+  <section>
+    <h2>5. 결과 저장</h2>
     <div class="muted">결과를 json 파일로 내려받아 PC의 data/raw/로 옮겨 주세요.</div>
     <div class="row">
       <button id="saveBtn" class="secondary">결과 파일 저장</button>
@@ -84,6 +92,7 @@ const result = {
   page: 'model-test', time: new Date().toISOString(), url: location.href,
   backend: EP, onnxruntime_web: '1.31.1', device: {}, env: {},
 };
+window.modelTestResult = result;   // PC 자동 시험에서 결과를 읽기 위해
 
 function rowsHtml(rows) { return rows.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join(''); }
 function stats(arr) {
@@ -254,7 +263,116 @@ $('micBtn').onclick = async () => {
   }
 };
 
-// ---------- 4. 저장 ----------
+// ---------- 4. 크롬 16 kHz 변환 모양 ----------
+// PC 크롬 158 측정값 (docs/logs/resample_compare_1127.txt, 48k→16k, 0.5~5 kHz = 0 dB)
+const PC_REF = { cross: { '-1': 6375, '-3': 6922, '-6': 7359 }, pts: { 6000: -0.3, 6500: -1.1, 7000: -3.1, 7500: -7.7, 7800: -11.2 } };
+const RS_SEC = 20, RS_SKIP = 0.5, NFFT = 1024;
+const CAP_SRC = `class CapRaw extends AudioWorkletProcessor {
+  process(inputs) { const ch = inputs[0] && inputs[0][0]; if (ch) this.port.postMessage(ch.slice(0)); return true; }
+}
+registerProcessor('cap-raw', CapRaw);`;
+
+function fftMag2(re) {               // 실수 입력 → |X|^2 (0..n/2), 반복형 radix-2
+  const n = re.length, im = new Float64Array(n), x = Float64Array.from(re);
+  for (let i = 1, j = 0; i < n; i++) {
+    let bit = n >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit;
+    if (i < j) { const t = x[i]; x[i] = x[j]; x[j] = t; }
+  }
+  for (let len = 2; len <= n; len <<= 1) {
+    const ang = -2 * Math.PI / len, wr = Math.cos(ang), wi = Math.sin(ang);
+    for (let i = 0; i < n; i += len) {
+      let cr = 1, ci = 0;
+      for (let k = 0; k < len / 2; k++) {
+        const a = i + k, b = a + len / 2;
+        const tr = x[b] * cr - im[b] * ci, ti = x[b] * ci + im[b] * cr;
+        x[b] = x[a] - tr; im[b] = im[a] - ti; x[a] += tr; im[a] += ti;
+        const nr = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = nr;
+      }
+    }
+  }
+  const out = new Float64Array(n / 2 + 1);
+  for (let k = 0; k <= n / 2; k++) out[k] = x[k] * x[k] + im[k] * im[k];
+  return out;
+}
+function responseDb(y, sr) {          // train/compare_resample.py의 psd + response_db와 같은 계산
+  const hop = NFFT / 2, win = new Float64Array(NFFT), acc = new Float64Array(NFFT / 2 + 1);
+  for (let i = 0; i < NFFT; i++) win[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (NFFT - 1));
+  let frames = 0;
+  for (let s = 0; s + NFFT <= y.length; s += hop) {
+    const fr = new Float64Array(NFFT); for (let i = 0; i < NFFT; i++) fr[i] = y[s + i] * win[i];
+    const p = fftMag2(fr); for (let k = 0; k < p.length; k++) acc[k] += p[k]; frames++;
+  }
+  const f = Array.from(acc, (_, k) => k * sr / NFFT);
+  let ref = 0, nr = 0; f.forEach((v, k) => { if (v >= 500 && v <= 5000) { ref += acc[k] / frames; nr++; } }); ref /= nr;
+  return { f, r: Array.from(acc, (v) => 10 * Math.log10(v / frames / ref + 1e-20)), frames };
+}
+function interp(x, xs, ys) { for (let i = 1; i < xs.length; i++) if (xs[i] >= x) { const t = (x - xs[i - 1]) / (xs[i] - xs[i - 1]); return ys[i - 1] + t * (ys[i] - ys[i - 1]); } return ys[ys.length - 1]; }
+function smooth5(r) { return r.map((_, k) => { let s = 0, n = 0; for (let j = k - 2; j <= k + 2; j++) if (j >= 0 && j < r.length) { s += r[j]; n++; } return s / n; }); }
+// 잡음 때문에 한 칸이 우연히 기준 아래로 내려가는 것을 막으려고 옆 5칸(약 78 Hz) 평균 곡선에서 찾는다
+function crossing(f, r, lv) { const m = smooth5(r); for (let k = 0; k < f.length; k++) if (f[k] > 3000 && m[k] < lv) return f[k]; return NaN; }
+function f32ToB64(a) {
+  const u8 = new Uint8Array(a.buffer, a.byteOffset, a.byteLength); let s = '';
+  for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+
+$('rsBtn').onclick = async () => {
+  $('rsBtn').disabled = true; $('rsTable').innerHTML = '';
+  let c48, c16, url;
+  try {
+    c48 = new AudioContext({ sampleRate: 48000 });
+    c16 = new AudioContext({ sampleRate: 16000 });
+    await c48.resume(); await c16.resume();
+    // 48 kHz 백색 잡음 (측정 길이 + 1초, 반복 없이: 반복하면 서로 다른 잡음이 줄어 값이 흔들림) → MediaStream
+    const nb = c48.createBuffer(1, 48000 * (RS_SEC + RS_SKIP + 1), 48000), d = nb.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * 0.3;
+    const src = c48.createBufferSource(); src.buffer = nb;
+    const dest = c48.createMediaStreamDestination(); src.connect(dest);
+    // 16 kHz AudioContext에서 받기 (녹음 페이지와 같은 MediaStreamSource 경로)
+    url = URL.createObjectURL(new Blob([CAP_SRC], { type: 'application/javascript' }));
+    await c16.audioWorklet.addModule(url);
+    const node = new AudioWorkletNode(c16, 'cap-raw', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] });
+    const mute = c16.createGain(); mute.gain.value = 0;
+    c16.createMediaStreamSource(dest.stream).connect(node); node.connect(mute); mute.connect(c16.destination);
+    const need = Math.round((RS_SEC + RS_SKIP) * c16.sampleRate), buf = new Float32Array(need); let got = 0;
+    const done = new Promise((res) => {
+      node.port.onmessage = (e) => {
+        const ch = e.data, n = Math.min(ch.length, need - got); buf.set(ch.subarray(0, n), got); got += n;
+        $('rsStatus').textContent = `받는 중 ${(got / c16.sampleRate).toFixed(1)} / ${RS_SEC + RS_SKIP}초`;
+        if (got >= need) res();
+      };
+    });
+    src.start();
+    await done;
+    src.stop();
+    const y = buf.subarray(Math.round(RS_SKIP * c16.sampleRate));
+    const { f, r, frames } = responseDb(y, c16.sampleRate);
+    const cross = { '-1': crossing(f, r, -1), '-3': crossing(f, r, -3), '-6': crossing(f, r, -6) };
+    const rs = smooth5(r), pts = {}; [6000, 6500, 7000, 7500, 7800].forEach((k) => { pts[k] = interp(k, f, rs); });
+    const rows = [
+      ['48 kHz 컨텍스트 / 16 kHz 컨텍스트', `${c48.sampleRate} Hz / ${c16.sampleRate} Hz`],
+      ['받은 길이', `${(y.length / c16.sampleRate).toFixed(2)}초 (프레임 ${frames}개)`],
+    ];
+    for (const lv of ['-1', '-3', '-6']) rows.push([`${lv} dB 지점 (휴대폰 / PC)`, `${cross[lv].toFixed(0)} Hz / ${PC_REF.cross[lv]} Hz`]);
+    for (const k of [6000, 6500, 7000, 7500, 7800]) rows.push([`${(k / 1000).toFixed(1)} kHz 세기 (휴대폰 / PC)`, `${pts[k].toFixed(1)} dB / ${PC_REF.pts[k]} dB`]);
+    $('rsTable').innerHTML = rowsHtml(rows);
+    $('rsStatus').textContent = '끝. 아래 "결과 파일 저장"을 눌러 json을 PC의 data/raw/로 옮겨 주세요.';
+    result.resampler = {
+      method: '48 kHz AudioBufferSource(백색 잡음) → MediaStreamAudioDestination → 16 kHz AudioContext MediaStreamSource → AudioWorklet',
+      ctx48Rate: c48.sampleRate, ctx16Rate: c16.sampleRate, seconds: y.length / c16.sampleRate, skipSec: RS_SKIP,
+      nfft: NFFT, crossingsHz: cross, pointsDb: pts, pcRef: PC_REF,
+      responseDb: r.map((v) => +v.toFixed(3)), samples_b64: f32ToB64(Float32Array.from(y)),
+    };
+  } catch (e) {
+    $('rsStatus').textContent = '측정 실패: ' + (e && e.message ? e.message : e);
+    result.resampler = { error: String(e && e.message ? e.message : e) };
+  } finally {
+    if (c48) await c48.close(); if (c16) await c16.close(); if (url) URL.revokeObjectURL(url);
+    $('rsBtn').disabled = false;
+  }
+};
+
+// ---------- 5. 저장 ----------
 function resultText() { return JSON.stringify(result, null, 1); }
 $('saveBtn').onclick = () => {
   const blob = new Blob([resultText()], { type: 'application/json' });

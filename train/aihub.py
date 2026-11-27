@@ -3,6 +3,7 @@
 사용법
   python train/aihub.py list      # 2-1: 소분류 목록·개수, 라벨 칸 이름, 날짜·장소 묶음 수
   python train/aihub.py index     # 2-2·2-3: 후보 조각 표 + 묶음 단위 분할 → data/raw_public/aihub/index.csv
+  python train/aihub.py override  # 이미 만든 index.csv에 config aihub.force_test_groups(시험으로 옮길 묶음)만 다시 적용
   python train/aihub.py extract   # 2-4: 상한까지 고르고 휴대폰 모양 16 kHz 2초 창 → data/raw_public/aihub/wav16k/, windows.csv
 
 원본 위치는 train/config.json의 paths.aihub_zip_root.
@@ -267,7 +268,37 @@ def assign_splits(rows):
             best = (c, dict(assign))
     for r in rows:
         r["split"] = best[1][r["group_id"]]
+    apply_overrides(rows)
     return best[0]
+
+
+def apply_overrides(rows):
+    """config aihub.force_test_groups의 묶음을 시험으로 옮긴다 (2026-11-27 사용자 요청).
+    차량경적은 시험 묶음이 작아 2초 이상 창이 8개뿐 → 차량경적만 든 묶음을 시험으로 옮겨
+    시험 비율이 15%를 넘더라도 차량경적 시험을 늘린다."""
+    force = set(AH.get("force_test_groups", []))
+    moved = collections.Counter()
+    for r in rows:
+        if r["group_id"] in force and r["split"] != "test":
+            moved[(r["group_id"], r["split"])] += 1
+            r["split"] = "test"
+    for (g, sp), n in moved.items():
+        print(f"  [강제 시험] {g}: {sp} → test, 조각 {n}개")
+    return moved
+
+
+def cmd_override():
+    """이미 만든 index.csv에 force_test_groups만 다시 적용 (zip을 다시 읽지 않음)"""
+    import csv
+    rows = list(csv.DictReader(open(INDEX_CSV, encoding="utf-8")))
+    for r in rows:
+        r["seg_sec"] = float(r["seg_sec"])
+    apply_overrides(rows)
+    with open(INDEX_CSV, "w", encoding="utf-8", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=INDEX_COLS)
+        w.writeheader()
+        w.writerows(rows)
+    report_index(rows)
 
 
 def cmd_index():
@@ -338,12 +369,14 @@ def subcat_code(subcat):
 def select_rows(rows):
     """분할·클래스마다 상한까지. 넘으면 소분류를 돌아가며, 소분류 안에서는 묶음을 돌아가며 하나씩"""
     import random
-    rng = random.Random(AH["select_seed"])
     caps = {"train": AH["train_cap"], "val": AH["val_cap"], "test": AH["test_cap"]}
+    sub_caps = {"test": AH.get("test_cap_subcat", {})}
     ok = [r for r in rows if float(r["seg_sec"]) >= AH["min_seg_sec"]]
     chosen = []
     for split in ["train", "val", "test"]:
         for cls in ["horn", "siren", "other"]:
+            # (분할, 클래스)마다 따로 난수: 한 칸을 바꿔도 다른 칸의 고르기가 바뀌지 않게
+            rng = random.Random(f"{AH['select_seed']}-{split}-{cls}")
             pool = [r for r in ok if r["split"] == split and r["cls"] == cls]
             subs = collections.defaultdict(lambda: collections.defaultdict(list))
             for r in pool:
@@ -357,11 +390,20 @@ def select_rows(rows):
                 rng.shuffle(glist)
                 queues[s] = glist
             cap, taken = caps[split][cls], []
+            scap = sub_caps.get(split, {})
+            n_sub = collections.Counter()
+            for s in list(queues):
+                if s in scap and scap[s] == 0:
+                    queues[s] = []
             while len(taken) < cap and any(queues.values()):
                 for s in sorted(queues):
                     glist = queues[s]
                     if not glist or len(taken) >= cap:
                         continue
+                    if s in scap and n_sub[s] >= scap[s]:
+                        queues[s] = []            # 소분류 상한에 닿음
+                        continue
+                    n_sub[s] += 1
                     items = glist.pop(0)          # 이 소분류의 다음 묶음에서 하나
                     taken.append(items.pop(0))
                     if items:
@@ -443,7 +485,7 @@ def cmd_extract():
 
 
 if __name__ == "__main__":
-    cmds = {"list": cmd_list, "index": cmd_index, "extract": cmd_extract}
+    cmds = {"list": cmd_list, "index": cmd_index, "override": cmd_override, "extract": cmd_extract}
     if len(sys.argv) < 2 or sys.argv[1] not in cmds:
         print(__doc__)
         sys.exit(1)

@@ -1,0 +1,48 @@
+# model-test 페이지 4번(크롬 16 kHz 변환 모양)을 PC 크롬(headless)에서 실행 (2026-11-27). 같은 PC에서 3번 + 분석 1번
+받은 길이	20.00초 (프레임 624개)
+-1 dB 지점 (휴대폰 / PC)	6531 Hz / 6375 Hz
+-3 dB 지점 (휴대폰 / PC)	6953 Hz / 6922 Hz
+-6 dB 지점 (휴대폰 / PC)	7406 Hz / 7359 Hz
+6.0 kHz 세기 (휴대폰 / PC)	-0.0 dB / -0.3 dB
+6.5 kHz 세기 (휴대폰 / PC)	-0.8 dB / -1.1 dB
+7.0 kHz 세기 (휴대폰 / PC)	-3.3 dB / -3.1 dB
+7.5 kHz 세기 (휴대폰 / PC)	-7.4 dB / -7.7 dB
+7.8 kHz 세기 (휴대폰 / PC)	-10.9 dB / -11.2 dB
+Chrome/158.0.0.0
+
+받은 길이	20.00초 (프레임 624개)
+-1 dB 지점 (휴대폰 / PC)	6500 Hz / 6375 Hz
+-3 dB 지점 (휴대폰 / PC)	6984 Hz / 6922 Hz
+-6 dB 지점 (휴대폰 / PC)	7375 Hz / 7359 Hz
+6.0 kHz 세기 (휴대폰 / PC)	-0.3 dB / -0.3 dB
+6.5 kHz 세기 (휴대폰 / PC)	-1.0 dB / -1.1 dB
+7.0 kHz 세기 (휴대폰 / PC)	-3.3 dB / -3.1 dB
+7.5 kHz 세기 (휴대폰 / PC)	-7.4 dB / -7.7 dB
+7.8 kHz 세기 (휴대폰 / PC)	-10.7 dB / -11.2 dB
+Chrome/158.0.0.0
+
+받은 길이	20.00초 (프레임 624개)
+-1 dB 지점 (휴대폰 / PC)	6531 Hz / 6375 Hz
+-3 dB 지점 (휴대폰 / PC)	6984 Hz / 6922 Hz
+-6 dB 지점 (휴대폰 / PC)	7359 Hz / 7359 Hz
+6.0 kHz 세기 (휴대폰 / PC)	-0.4 dB / -0.3 dB
+6.5 kHz 세기 (휴대폰 / PC)	-0.9 dB / -1.1 dB
+7.0 kHz 세기 (휴대폰 / PC)	-3.1 dB / -3.1 dB
+7.5 kHz 세기 (휴대폰 / PC)	-7.5 dB / -7.7 dB
+7.8 kHz 세기 (휴대폰 / PC)	-10.8 dB / -11.2 dB
+Chrome/158.0.0.0
+
+# 크롬 16 kHz 변환 모양: PC 페이지 재측정 vs PC (입력 pc_result.json)
+기기:  Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36
+컨텍스트 48000 Hz → 16000 Hz, 받은 길이 20.00초
+PC 페이지 재측정 -1dB   6453 Hz  -3dB   6906 Hz  -6dB   7375 Hz  6.0k   -0.4  6.5k   -0.9  7.0k   -2.9  7.5k   -7.6  7.8k  -10.8
+PC 크롬    -1dB   6500 Hz  -3dB   6922 Hz  -6dB   7359 Hz  6.0k   -0.3  6.5k   -1.1  7.0k   -3.2  7.5k   -7.7  7.8k  -11.0
+
+== PC 페이지 재측정 − PC (dB) ==
+  0.5~6.0 kHz: 평균 차이   0.01, 최대 |차이|   0.77
+  6.0~7.5 kHz: 평균 차이  -0.12, 최대 |차이|   0.79
+  7.5~7.8 kHz: 평균 차이   0.17, 최대 |차이|   0.71
+  7.8~8.0 kHz: 평균 차이   0.06, 최대 |차이|   0.54
+
+0.5~7.8 kHz 구간별 평균 차이 중 가장 큰 값: 0.17 dB (같은 PC에서 여러 번 재도 생기는 흔들림은 docs/logs/resampler_page_pc_1127.txt 참고)
+그림: docs\figures\resampler_page_pc_1127.png (실행 때 이름 phone_resampler_1127.png에서 바꿈)

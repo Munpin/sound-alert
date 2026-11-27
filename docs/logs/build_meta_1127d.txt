@@ -1,0 +1,15 @@
+  [own] doorbell_1126_s01_desk_phone.wav: doorbell 10개, other 88개, split train
+  [own] knock_1126_s02_desk_phone.wav: knock 10개, other 53개, split train
+  [audioset] 뺀 것: {'저음질(대역폭 7 kHz 미만)': 6}
+  own         161줄
+  esc50      1998줄
+  aihub      3431줄
+  audioset     27줄
+  cryceleb    900줄
+  fsd50k      176줄
+  rerecord      0줄
+학습 other 상한 2400: 공개 데이터 218개를 뺌 (직접 녹음·재녹음·ESC-50은 모두 넣고 나머지를 묶음별로 고르게)
+학습 siren 상한 600: 공개 데이터 24개를 뺌 (직접 녹음·재녹음·ESC-50은 모두 넣고 나머지를 묶음별로 고르게)
+학습 horn 상한 600: 공개 데이터 24개를 뺌 (직접 녹음·재녹음·ESC-50은 모두 넣고 나머지를 묶음별로 고르게)
+학습 baby_cry 상한 600: 공개 데이터 24개를 뺌 (직접 녹음·재녹음·ESC-50은 모두 넣고 나머지를 묶음별로 고르게)
+저장: data/meta.csv (6403줄)

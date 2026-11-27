@@ -1,0 +1,44 @@
+meta.csv 6403줄
+
+== 1) 묶음 검사: 묶음 2629개, 여러 분할에 걸친 묶음 0개 ==
+
+== 2) 클래스 × 분할 × 출처 ==
+          분할           own  rerecord     esc50     aihub  audioset  cryceleb    fsd50k      합계
+doorbell  train         10         0         0         0         0         0         0      10
+doorbell  val            0         0         0         0         0         0         0       0
+doorbell  test           0         0         0         0         0         0         0       0
+knock     train         10         0        24         0         0         0       119     153
+knock     val            0         0         8         0         0         0        27      35
+knock     test           0         0         8         0         0         0        30      38
+baby_cry  train          0         0        24         0         0       576         0     600
+baby_cry  val            0         0         8         0         0       150         0     158
+baby_cry  test           0         0         8         0        27       150         0     185
+siren     train          0         0        24       576         0         0         0     600
+siren     val            0         0         8       150         0         0         0     158
+siren     test           0         0         8        57         0         0         0      65
+horn      train          0         0        24       576         0         0         0     600
+horn      val            0         0         8       150         0         0         0     158
+horn      test           0         0         8        52         0         0         0      60
+other     train        141         0      1102      1157         0         0         0    2400
+other     val            0         0       368       147         0         0         0     515
+other     test           0         0       368       300         0         0         0     668
+
+== 2-1) 경적 시험: 소분류별 (subclass) ==
+  1.자동차/1.차량경적               22
+  2.이륜자동차/4.이륜차경적            30
+  car_horn                    8
+== 2-1) 아기 울음: 원래 출처별 (orig_source) ==
+  train cryceleb 576, esc50 24
+  val   cryceleb 150, esc50 8
+  test  audioset 27, cryceleb 150, esc50 8
+
+== 3) 시험 A(직접 녹음 + 재녹음, test): {} ==
+  [부족] 6종 모두 있음 — 없는 클래스: ['doorbell', 'knock', 'baby_cry', 'siren', 'horn', 'other']
+
+== 부족한 칸 (시험 30개 이상, 아기 울음 50개 이상, 검증 20개 이상) ==
+  doorbell  test     0 < 30
+  doorbell  val      0 < 20
+
+그림: docs\figures\data_counts_1127.png
+
+결과: 분할 검사 통과 / 시험 A 부족

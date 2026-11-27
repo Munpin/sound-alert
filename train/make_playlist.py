@@ -13,6 +13,10 @@ meta.csv에서 고른 공개 데이터 2초 창들을 원본 음질(48 kHz)로 �
 사용법
   python train/make_playlist.py --split test --cls siren --n 30
   python train/make_playlist.py --split val --cls baby_cry --n 25 --sources audioset,cryceleb,esc50
+  python train/make_playlist.py --split test --cls baby_cry --n 50 --fill-order audioset,esc50,cryceleb
+
+--fill-order: 앞 출처를 모두 넣고 모자란 만큼만 다음 출처로 채운다(출처 안에서는 묶음을 돌아가며).
+  아기 울음 시험 재녹음은 AudioSet → ESC-50 → CryCeleb 순서 (2026-11-27 사용자 요청: 실제 영상 소리를 먼저)
 """
 
 import argparse
@@ -120,6 +124,16 @@ def pick(rows, n, seed):
     return out
 
 
+def pick_ordered(rows, n, seed, order):
+    """order 순서대로: 앞 출처를 다 쓰고 모자라면 다음 출처"""
+    out = []
+    for src in order:
+        if len(out) >= n:
+            break
+        out += pick([r for r in rows if r["source"] == src], n - len(out), seed)
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--split", required=True, choices=["val", "test"])
@@ -128,11 +142,13 @@ def main():
     ap.add_argument("--sources", default="", help="쉼표로 출처 제한 (기본: 공개 데이터 전부)")
     ap.add_argument("--name", default="")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--fill-order", default="", help="쉼표로 출처 순서 (앞 출처를 모두 넣고 모자란 만큼 다음 출처)")
     args = ap.parse_args()
-    srcs = tuple(args.sources.split(",")) if args.sources else PUBLIC
+    order = [x for x in args.fill_order.split(",") if x]
+    srcs = tuple(order) if order else (tuple(args.sources.split(",")) if args.sources else PUBLIC)
     rows = [r for r in csv.DictReader(open(DATA / "meta.csv", encoding="utf-8"))
             if r["split"] == args.split and r["class"] == args.cls and r["source"] in srcs]
-    chosen = pick(rows, args.n, args.seed)
+    chosen = pick_ordered(rows, args.n, args.seed, order) if order else pick(rows, args.n, args.seed)
     if len(chosen) < args.n:
         print(f"[경고] 후보가 {len(rows)}개라 {len(chosen)}개만 고름")
     name = args.name or f"{args.cls}_{args.split}"

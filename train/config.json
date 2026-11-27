@@ -58,7 +58,9 @@
     "split_trials": 400,
     "train_cap": {"horn": 600, "siren": 600, "other": 1400},
     "val_cap": {"horn": 150, "siren": 150, "other": 150},
-    "test_cap": {"horn": 300, "siren": 300, "other": 300},
+    "test_cap": {"horn": 52, "siren": 300, "other": 300},
+    "test_cap_subcat": {"1.자동차/1.차량경적": 22, "2.이륜자동차/4.이륜차경적": 30},
+    "force_test_groups": ["aihub:2021-10-26|양주시|도하리"],
     "min_seg_sec": 2.0,
     "min_window_dbfs": -55.0,
     "select_seed": 0

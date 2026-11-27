@@ -66,6 +66,15 @@ def main():
             totals[(c, sp)] = sum(vals)
             print(f"{c:10s}{sp:6s}" + "".join(f"{v:10d}" for v in vals) + f"{sum(vals):8d}")
 
+    # 2-1) 나눠서 점수를 낼 칸: 경적은 소분류, 아기 울음은 원래 출처
+    print("\n== 2-1) 경적 시험: 소분류별 (subclass) ==")
+    for k, v in sorted(collections.Counter(r["subclass"] for r in rows if r["class"] == "horn" and r["split"] == "test").items()):
+        print(f"  {k:24s} {v:4d}")
+    print("== 2-1) 아기 울음: 원래 출처별 (orig_source) ==")
+    for sp in SPLITS:
+        c = collections.Counter(r["orig_source"] for r in rows if r["class"] == "baby_cry" and r["split"] == sp)
+        print(f"  {sp:5s} " + ", ".join(f"{k} {v}" for k, v in sorted(c.items())))
+
     # 3) 시험 A
     a = collections.Counter(r["class"] for r in rows if r["split"] == "test" and src_group(r["source"]) in ("own", "rerecord"))
     missing = [c for c in CLASSES if a[c] == 0]

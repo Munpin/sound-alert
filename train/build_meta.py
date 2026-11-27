@@ -10,8 +10,11 @@
   fsd50k    data/raw_public/fsd50k/windows.csv (있으면)
 
 출력
-  data/meta.csv  칸: file, class, source, group_id, split, place, background, phone_state, device, date, license, note, win_start
+  data/meta.csv  칸: file, class, subclass, source, orig_source, group_id, split, place, background, phone_state, device,
+                     date, license, note, win_start
                  file은 data/ 아래 경로, win_start는 그 파일 안에서 2초 창이 시작하는 초
+                 subclass: 원래 데이터의 소분류(AI Hub 소분류, ESC-50 category 등). 경적을 차량/이륜차로 나눠 점수를 낼 때 쓴다
+                 orig_source: 소리의 원래 출처(재녹음이면 원본의 출처). 아기 울음을 출처별로 나눠 점수를 낼 때 쓴다
 
 직접 녹음 → 2초 창
   - 소리 하나에 창 하나: 2초보다 길면 가장 큰 2초, 짧으면 소리를 가운데 두고 앞뒤는 같은 녹음 그대로
@@ -40,8 +43,8 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data"
 CFG = json.loads((ROOT / "train" / "config.json").read_text(encoding="utf-8"))
 M = CFG["meta"]
-COLS = ["file", "class", "source", "group_id", "split", "place", "background", "phone_state", "device", "date",
-        "license", "note", "win_start"]
+COLS = ["file", "class", "subclass", "source", "orig_source", "group_id", "split", "place", "background", "phone_state",
+        "device", "date", "license", "note", "win_start"]
 WIN = 2.0
 
 
@@ -69,7 +72,7 @@ def own_rows():
         dur = len(y) / sr
         segs = rows_csv(seg)
         split = s.get("split") or "unassigned"
-        base = dict(source="own", group_id=s["group_id"], split=split, place=s["place"], background=s["background"],
+        base = dict(source="own", orig_source="own", group_id=s["group_id"], split=split, place=s["place"], background=s["background"],
                     phone_state=s["phone_state"], device=s["device"], date=s["date"], license="own")
         cls_ev = [(float(r["start"]), float(r["end"])) for r in segs if r["label"] != "other"]
         n_cls = 0
@@ -79,7 +82,8 @@ def own_rows():
                 st = a + i / sr
             else:
                 st = min(max(0.0, (a + b) / 2 - WIN / 2), dur - WIN)
-            out.append(row(file=f"raw/{s['file']}", **{"class": s["class"]}, note="", win_start=round(st, 3), **base))
+            out.append(row(file=f"raw/{s['file']}", **{"class": s["class"]}, subclass=s["class"], note="",
+                           win_start=round(st, 3), **base))
             n_cls += 1
         # other: 소리 앞뒤 보호 구간을 뺀 other 구간을 2초씩
         bad = [(a - M["own_other_guard_before_sec"], b + M["own_other_guard_after_sec"]) for a, b in cls_ev]
@@ -96,7 +100,8 @@ def own_rows():
                         b = min(b, ba)
             t = a
             while t + WIN <= b + 1e-6:
-                out.append(row(file=f"raw/{s['file']}", **{"class": "other"}, note=f"own other ({r['note'] or 'gap'})",
+                out.append(row(file=f"raw/{s['file']}", **{"class": "other"}, subclass=f"own {r['note'] or 'gap'}",
+                               note=f"own other ({r['note'] or 'gap'})",
                                win_start=round(t, 3), **base))
                 t += WIN
                 n_oth += 1
@@ -104,10 +109,13 @@ def own_rows():
     return out
 
 
-def rerecord_rows():
+def rerecord_rows(public):
+    """public: 공개 데이터 줄들. 원본 줄에서 subclass를 물려받는다"""
+    sub_of = {r["file"]: r["subclass"] for r in public}
     out = []
     for r in rows_csv(DATA / "raw" / "rerecord" / "rerecord_index.csv"):
-        out.append(row(file=f"raw/rerecord/{r['file']}", **{"class": r["cls"]}, source=f"rerecord:{r['orig_file']}",
+        out.append(row(file=f"raw/rerecord/{r['file']}", **{"class": r["cls"]}, subclass=sub_of.get(r["orig_file"], ""),
+                       source=f"rerecord:{r['orig_file']}", orig_source=r["orig_source"],
                        group_id=r["group_id"], split=r["split"], place=r["place"], background=r["background"],
                        phone_state=r["phone_state"], device="phone", date=r["date"], license=r["license"],
                        note=f"재녹음 원본 {r['orig_source']}", win_start=0.0))
@@ -115,15 +123,15 @@ def rerecord_rows():
 
 
 def esc50_rows():
-    return [row(file=f"raw_public/esc50/wav16k/{r['file']}", **{"class": r["cls"]}, source="esc50",
-                group_id=r["group_id"], split=r["split"], device="public", license="CC BY-NC 3.0 (ESC-50)",
+    return [row(file=f"raw_public/esc50/wav16k/{r['file']}", **{"class": r["cls"]}, subclass=r["category"], source="esc50",
+                orig_source="esc50", group_id=r["group_id"], split=r["split"], device="public", license="CC BY-NC 3.0 (ESC-50)",
                 note=f"{r['category']}, fold {r['fold']}, 원본 {r['win_start_sec']}초부터", win_start=0.0)
             for r in rows_csv(DATA / "raw_public" / "esc50" / "windows.csv")]
 
 
 def aihub_rows():
-    return [row(file=f"raw_public/aihub/wav16k/{r['file']}", **{"class": r["cls"]}, source="aihub",
-                group_id=r["group_id"], split=r["split"], place=r["place"], device="public", date=r["date"],
+    return [row(file=f"raw_public/aihub/wav16k/{r['file']}", **{"class": r["cls"]}, subclass=r["subcat"], source="aihub",
+                orig_source="aihub", group_id=r["group_id"], split=r["split"], place=r["place"], device="public", date=r["date"],
                 license="AI Hub 이용약관 (라벨 json: CC 0)", note=f"{r['subcat']}, 조각 안 {r['win_start_sec']}초부터",
                 win_start=0.0)
             for r in rows_csv(DATA / "raw_public" / "aihub" / "windows.csv")]
@@ -140,7 +148,8 @@ def audioset_rows():
             continue
         st = r.get("use_start_sec") or M["audioset_window_fix"].get(r["ytid"]) or r["auto_start_sec"]
         how = "사람이 고름" if (r.get("use_start_sec") or r["ytid"] in M["audioset_window_fix"]) else "자동 후보(가장 큰 2초)"
-        out.append(row(file=f"raw_public/audioset/wav16k/{r['file']}", **{"class": "baby_cry"}, source="audioset",
+        out.append(row(file=f"raw_public/audioset/wav16k/{r['file']}", **{"class": "baby_cry"}, subclass="Baby cry, infant cry",
+                       source="audioset", orig_source="audioset",
                        group_id=f"audioset:{r['ytid']}", split="test", device="public",
                        license="YouTube (AudioSet 라벨 CC BY 4.0)", note=f"10초 중 창, {how}", win_start=float(st)))
     if skipped:
@@ -152,7 +161,8 @@ def generic_rows(name):
     """cryceleb / fsd50k: windows.csv에 file, cls, group_id, split, license, note, win_start가 있다고 가정"""
     out = []
     for r in rows_csv(DATA / "raw_public" / name / "windows.csv"):
-        out.append(row(file=f"raw_public/{name}/wav16k/{r['file']}", **{"class": r["cls"]}, source=name,
+        out.append(row(file=f"raw_public/{name}/wav16k/{r['file']}", **{"class": r["cls"]}, subclass=r.get("subclass") or name,
+                       source=name, orig_source=name,
                        group_id=r["group_id"], split=r["split"], device="public", license=r.get("license", ""),
                        note=r.get("note", ""), win_start=float(r.get("win_start") or 0)))
     return out
@@ -195,8 +205,9 @@ def cap_train(rows, cls, cap):
 
 
 def main():
-    parts = {"own": own_rows(), "rerecord": rerecord_rows(), "esc50": esc50_rows(), "aihub": aihub_rows(),
-             "audioset": audioset_rows(), "cryceleb": generic_rows("cryceleb"), "fsd50k": generic_rows("fsd50k")}
+    parts = {"own": own_rows(), "esc50": esc50_rows(), "aihub": aihub_rows(), "audioset": audioset_rows(),
+             "cryceleb": generic_rows("cryceleb"), "fsd50k": generic_rows("fsd50k")}
+    parts["rerecord"] = rerecord_rows([r for k, p in parts.items() if k != "own" for r in p])
     rows = [r for p in parts.values() for r in p]
     for k, p in parts.items():
         print(f"  {k:9s} {len(p):5d}줄")

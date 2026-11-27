@@ -307,8 +307,46 @@ python train/check_session.py data/raw/knock_1126_s02_desk_phone.wav --expect 10
 - `check_splits.py` 그림: 0개 칸도 빨강으로 (초인종 학습 0이 초록으로 보이던 것 고침)
 - `docs/progress/report_w2_1203.md`에 2단계(2.4~2.7, 결과, 문제, 결정, 핵심 숫자, 예상 질문) 추가
 
+### 2단계 결과 보고 후 수정 요청 1~6 (11/27)
+
+**1. 경적 시험 60개, 차량·이륜차 반씩** (`train/aihub.py`, config `aihub.test_cap`·`test_cap_subcat`·`force_test_groups`)
+- 차량경적 시험(2초 이상) 8개뿐 → 차량경적만 든 학습 묶음 중 같은 장소의 다른 날짜가 없는 `aihub:2021-10-26|양주시|도하리`(조각 332개)를 시험으로 옮김. 영등포동(161개)은 2021-09-04·10-13 녹음이 학습에 있어 뺌, 은현면도 날짜 2개라 뺌
+- `python train/aihub.py override` (새 명령: index.csv에 강제 시험 묶음만 적용, 출력 `docs/logs/aihub_override_1127.txt`) → 경적 조각 학습 59.0 / 검증 17.7 / 시험 23.4%
+- 시험 상한: horn 52 = 차량경적 22 + 이륜차경적 30 (ESC-50 car_horn 8 더해 60)
+- 고르기 난수를 (분할, 클래스)마다 따로(`random.Random(f"{seed}-{split}-{cls}")`)로 바꿈 → AI Hub 창 전부 다시 만듦: `rm -rf data/raw_public/aihub/wav16k && python train/aihub.py extract` (출력 `docs/logs/aihub_extract_1127b.txt`): 3,431개, 조용해서 뺀 것 28개
+- 경적 시험 묶음(`docs/logs/horn_test_groups_1127.txt`): 차량경적 22개 5묶음(도하리 14), car_horn 8개 6묶음, 이륜차경적 30개 1묶음(고양시 용두동 2021-11-12)
+- 발견: AI Hub 이륜차경적은 거의 용두동. 학습에 용두동 다른 날짜 묶음 4개 → 한계로 기록(바꾸지 않음)
+- meta.csv에 `subclass` 칸 추가(AI Hub 소분류, ESC-50 category, own 회차 note 등)
+
+**2. 아기 울음 출처별** (`train/build_meta.py`, `train/make_playlist.py`, `train/check_splits.py`)
+- meta.csv에 `orig_source` 칸 추가(재녹음이면 원본의 출처, rerecord_index의 orig_source). 재녹음 줄의 subclass는 원본 줄에서 물려받음
+- `make_playlist.py --fill-order audioset,esc50,cryceleb`: 앞 출처를 모두 넣고 모자란 만큼만 다음 출처
+- `python train/make_playlist.py --split test --cls baby_cry --n 50 --fill-order audioset,esc50,cryceleb` → 50개 = AudioSet 27 + ESC-50 8 + CryCeleb 15, 묶음 44개, 203.0초 (`docs/logs/playlist_baby_cry_test_1127.txt`)
+- check_splits.py에 경적 시험 소분류별, 아기 울음 출처별 개수 출력 추가
+
+**3. 휴대폰 크롬 변환 모양 측정** (`web/model-test.html` 4번, `train/verify_phone_resampler.py`)
+- 48 kHz AudioContext의 백색 잡음 AudioBufferSource → MediaStreamAudioDestination → 16 kHz AudioContext의 MediaStreamSource → AudioWorklet로 받음. 20초(앞 0.5초 버림), 1024점 웰치 평균, 0.5~5 kHz = 0 dB. 결과 json에 곡선과 받은 소리(base64) 저장
+- PC 크롬(headless) 1차: −1 dB 지점이 3,484 Hz로 나옴(잡음 한 칸이 우연히 내려감) → 20초로 늘리고 옆 5칸(약 78 Hz) 평균으로 지점 찾기
+- 2차: 같은 PC에서 두 번 쟀는데 6.5 kHz 값이 −1.2 / −0.3 dB로 0.9 dB 차이 → 원인: 4초 잡음 반복 재생(서로 다른 잡음이 4초뿐) → 반복 없이 21초 잡음
+- 3차(3번): −3 dB 6,953 / 6,984 / 6,984 Hz, 7.5 kHz −7.4 / −7.4 / −7.5 dB. `verify_phone_resampler.py`로 예전 PC 측정과 비교: 구간별 평균 차이 최대 0.17 dB (`docs/logs/resampler_page_pc_1127.txt`, 그림 `docs/figures/resampler_page_pc_1127.png`)
+- 페이지에 `window.modelTestResult` 추가(PC 자동 시험에서 결과를 읽으려고)
+- 휴대폰 측정: 미확인(사용자가 휴대폰에서 누를 예정)
+
+**4. 직접 녹음**: `data/sessions.csv`의 split 칸을 s01(초인종), s02(노크) 모두 train으로
+
+**5. 재녹음 시계 어긋남 보정** (`train/align_rerecord.py`, 시험 `train/sim_rerecord.py`, 출력 `docs/logs/rerecord_drift_1127.txt`)
+- 보정 자체(앞뒤 신호음 사이 길이 비율)는 있었지만 신호음을 10 ms 단위로 찾아 수 ms 어긋남을 못 잼
+- 고침: 대략 위치(10 ms) 뒤, 1 kHz로 내려 곱하고 16샘플 평균한 크기 곡선에서 안정 크기의 비율을 넘는 순간(샘플 단위, 소수점 보간). 같은 신호음으로 만든 기준 차이(REF_OFFSET)를 뺌
+- 첫 시험: 절반 높이 기준 → 모든 창이 16.7 ms 늦음. 원인: 흉내 녹음의 울림이 커서 신호음 크기가 수십 ms 동안 쌓임 → 기준을 10%로 낮춤 (REF_OFFSET 0.97 ms)
+- 결과(사이렌 시험 재생 파일 30개, 간격 122.5초): 0 / +40 / +300 / −500 / +1000 ppm을 모두 정확히 잼, 위치 오차 최대 0.80~0.86 ms. 고치기 전 방식: +40 → +82 ppm, 최대 오차 3.9~6.4 ms
+- `--dry-run` 옵션 추가(파일·목록을 쓰지 않음)
+
+**다시 만들기**: `python train/build_meta.py` (출력 `docs/logs/build_meta_1127d.txt`) → 6,403줄 / `python train/check_splits.py --date 1127` (출력 `docs/logs/check_splits_1127d.txt`) → 묶음 2,629개, 여러 분할에 걸친 묶음 0개. 부족: doorbell val 0, test 0. 시험 A 0개
+
+**6. 보고서**: `docs/progress/report_w2_1203.md`에 2.8절(고친 것), 결과 표, 문제·결정, 핵심 숫자, 예상 질문 반영
+
 ## 다음 할 일
-- 2단계 남은 일(사용자): 초인종·노크 회차 더 녹음, 직접 녹음 회차 분할 정하기, 스피커 재녹음
+- 2단계 남은 일(사용자): 휴대폰에서 model-test 4번 측정 → json을 data/raw/로, 스피커 재녹음, 초인종 검증·시험용 회차
 - 설계서 7절 다음 단계 진행 (다음 단계 문서를 받으면)
 
 ## 남은 문제

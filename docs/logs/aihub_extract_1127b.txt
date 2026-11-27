@@ -1,0 +1,34 @@
+고른 조각 3459개 (2초 이상만, 상한 적용)
+  500/3459
+  1000/3459
+  제외: 8.도구/17.악기/8.도구_8178_1.wav 창이 너무 조용함 (-56.6 dBFS)
+  제외: 8.도구/16.공구/8.도구_7373_1.wav 창이 너무 조용함 (-56.2 dBFS)
+  제외: 8.도구/17.악기/8.도구_7503_1.wav 창이 너무 조용함 (-65.8 dBFS)
+  1500/3459
+  2000/3459
+  2500/3459
+  3000/3459
+저장: 3431개 → data\raw_public\aihub\wav16k, 목록 data\raw_public\aihub\windows.csv
+제외: {'창이 너무 조용함': 28}
+
+== 2초 창: 클래스 × 분할 (묶음 수) ==
+  horn   train  600 ( 27)   val  150 (  2)   test   52 (  6)
+  siren  train  600 ( 67)   val  150 ( 14)   test   57 ( 15)
+  other  train 1375 (215)   val  147 ( 52)   test  300 ( 51)
+
+== 소분류 × 분할 ==
+  1.자동차/1.차량경적             train  300  val  103  test   22
+  1.자동차/2.차량사이렌            train  600  val  150  test   57
+  1.자동차/3.차량주행음            train  140  val   17  test   28
+  2.이륜자동차/4.이륜차경적          train  300  val   47  test   30
+  2.이륜자동차/5.이륜차주행음         train  140  val   17  test   32
+  5.충격/10.발소리              train  136  val   17  test   32
+  5.충격/11.가구소리             train  139  val   14  test   31
+  6.가전/12.청소기              train  137  val   17  test   31
+  6.가전/13.세탁기              train  137  val   17  test   31
+  7.동물/14.개                train  140  val    0  test   31
+  7.동물/15.고양이              train  140  val   16  test   22
+  8.도구/16.공구               train  137  val   16  test   31
+  8.도구/17.악기               train  129  val   16  test   31
+
+창 음량 대비(창 RMS − 조각의 조용한 10% 수준): 중앙값 10.4 dB, 3 dB 미만 181개 (계속 나는 소리)
