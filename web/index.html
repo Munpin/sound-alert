@@ -147,7 +147,7 @@
     </div>
     <div id="savedBox" class="hidden">
       <div class="banner ok" id="savedText"></div>
-      <label>meta.csv에 붙여 넣을 줄</label>
+      <label>data/sessions.csv에 붙여 넣을 줄</label>
       <textarea id="metaLine" rows="3" readonly></textarea>
       <div class="row" style="margin-top:6px"><button id="copyLineBtn" class="secondary">이 줄 복사</button></div>
     </div>
@@ -155,7 +155,7 @@
 
   <!-- 5. 저장 기록 -->
   <section>
-    <h2>5. 저장 기록 (meta.csv 줄 모음)</h2>
+    <h2>5. 저장 기록 (sessions.csv 줄 모음)</h2>
     <div class="muted">이 휴대폰 브라우저에 남아 있습니다. 첫 줄은 머리글입니다.</div>
     <textarea id="allLines" rows="6" readonly style="margin-top:6px"></textarea>
     <div class="row" style="margin-top:6px">
@@ -254,7 +254,7 @@ async function copyText(text, btn) {
 }
 $('copyAllBtn').onclick = () => copyText($('allLines').value, $('copyAllBtn'));
 $('clearAllBtn').onclick = () => {
-  if (!confirm('저장 기록(meta 줄과 이름 목록)을 지울까요? 휴대폰에 저장된 wav 파일은 지워지지 않습니다.')) return;
+  if (!confirm('저장 기록(sessions 줄과 이름 목록)을 지울까요? 휴대폰에 저장된 wav 파일은 지워지지 않습니다.')) return;
   store.set('rows', []); store.set('names', []); refreshAll();
 };
 

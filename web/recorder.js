@@ -1,5 +1,5 @@
 // recorder.js
-// 녹음(16 kHz 조각 모으기), wav 만들기, 파일 이름과 meta.csv 한 줄 만들기, 화면 켜 두기.
+// 녹음(16 kHz 조각 모으기), wav 만들기, 파일 이름과 sessions.csv 한 줄(회차 정보) 만들기, 화면 켜 두기.
 // audio-input.js가 준 16 kHz 신호를 그대로 저장한다. 저장할 때 샘플레이트를 다시 바꾸지 않는다.
 
 import { TARGET_RATE, CLIP_LEVEL } from './audio-input.js';
@@ -108,7 +108,7 @@ export function todayMMDD(d = new Date()) {
   return String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
 }
 
-/** 오늘 날짜 YYYY-MM-DD (meta.csv의 date 칸) */
+/** 오늘 날짜 YYYY-MM-DD (sessions.csv의 date 칸) */
 export function todayISO(d = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
@@ -157,7 +157,7 @@ function csvField(s) {
   return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 }
 
-/** meta.csv에 붙여 넣을 한 줄 */
+/** data/sessions.csv에 붙여 넣을 한 줄 (회차 정보. data/meta.csv는 build_meta.py가 만든다) */
 export function metaRow({ file, cls, date, session, place, background, phoneState, isoDate, note }) {
   return [
     file,

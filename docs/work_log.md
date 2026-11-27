@@ -243,6 +243,25 @@ python train/check_session.py data/raw/knock_1126_s02_desk_phone.wav --expect 10
 
 **3. CryCeleb**: 허깅페이스 로그인 토큰 없음 → 사용자 로그인 대기
 
+**결정 (사용자 승인)**: AudioSet 창은 자동 후보(가장 큰 2초)를 쓰고 틀린 번호만 사용자가 알려 줌 / AudioSet 저음질 6개는 시험에서 뺌 / FSD50K 개발용(18.4 GB)만 받음(노크 270개, 묶음 = 올린 사람) / 회차 정보는 `data/sessions.csv`로 분리, `data/meta.csv`는 build_meta.py가 자동 생성
+- FSD50K 노크 라이선스(개발용): CC0 166, BY 81, BY-NC 20, Sampling+ 3. 올린 사람 94명(한 사람이 48개)
+
+**회차 정보 분리**: `data/meta.csv` → `data/sessions.csv`로 이름 바꿈. 녹음 페이지 문구('sessions.csv에 붙여 넣을 줄'), recorder.js 주석, check_session.py(`--meta` 기본값 sessions.csv), recording_setup.md 4절 수정
+
+**8. 표와 분할 검사** (`train/build_meta.py`, `train/check_splits.py`)
+- meta.csv 한 줄 = 2초 창 하나. 칸: file(data/ 아래 경로), class, source, group_id, split, place, background, phone_state, device, date, license, note, win_start
+- 직접 녹음: 소리 하나에 창 하나(2초보다 길면 가장 큰 2초, 짧으면 소리를 가운데), other는 other 구간을 2초씩 자름. 소리 끝 1초·시작 0.3초 근처는 other로 안 씀(1단계-2에서 발견한 울림 꼬리 문제)
+- 학습 상한(설계서 4절 other 2,400, siren·horn 600): 직접 녹음·재녹음·ESC-50은 모두 넣고 나머지 공개 데이터에서 출처·묶음을 돌아가며 채움. 처음엔 other만 상한을 걸어 siren·horn 학습이 624개(AI Hub 600 + ESC 24)였음 → 클래스별 상한으로 고침
+- 지금(CryCeleb·FSD50K 전): 5,741줄, 묶음 1,932개, 여러 분할에 걸친 묶음 0개. 직접 녹음 2회차는 split 미정(unassigned)
+
+**6. 스피커 재녹음 도구** (`train/make_playlist.py`, `train/align_rerecord.py`, 시험 출력 `docs/logs/rerecord_sim_1127.txt`)
+- 재생 파일: 원본 음질(48 kHz)로, 시작 신호음 1 kHz 0.5초 + [창 2초 + 무음 2초] × n + 끝 신호음. 창마다 RMS −23 dBFS(최고점 −1 dBFS 이하)
+- 자르기: 시작·끝 신호음으로 시계 차이 보정 → csv 시각대로 2초. 창 음량이 앞 무음보다 10 dB 미만이면 경고
+- 1차: 창마다 음량 곡선으로 위치를 다시 잡았더니 사이렌처럼 일정한 소리에서 최대 300 ms 잘못 옮김 → 버리고 끝 신호음으로 시계 보정
+- 2차 시험이 이상하게 나온 원인은 흉내 녹음을 잘못 만든 것(울림 크기 정규화로 소리가 잡음 아래로 묻힘) — 새 확인값(앞 무음 대비 0.7 dB)이 이를 잡아냄
+- 신호음 시작을 20 ms 일찍 잡는 쏠림 → 분석 창 가운데 기준으로 고침
+- 최종 흉내 녹음 시험(시계 +40 ppm, 울림, 잡음 −55 dBFS): 30/30개, 정답 위치와 최대 8.7 ms·평균 6.4 ms, 앞 무음 대비 21.2 dB 이상
+
 ## 다음 할 일
 - 설계서 7절 다음 단계 진행 (다음 단계 문서를 받으면)
 

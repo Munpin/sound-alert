@@ -64,6 +64,16 @@
     "select_seed": 0
   },
 
+  "meta": {
+    "train_cap": {"other": 2400, "siren": 600, "horn": 600},
+    "own_other_guard_after_sec": 1.0,
+    "own_other_guard_before_sec": 0.3,
+    "audioset_exclude_low_band": ["K8On7nUJuP8", "PVSHN_arz2k", "QhUa5vXLlCI", "StO32FBBIH4", "y6jT3Q3gyvs", "ypmfbwrqL4s"],
+    "audioset_window_fix": {},
+    "audioset_drop": [],
+    "targets": {"test_min": 30, "test_min_baby_cry": 50, "val_min": 20}
+  },
+
   "backbone": "mobilenet_v3_small",
   "pretrained": "IMAGENET1K_V1"
 }

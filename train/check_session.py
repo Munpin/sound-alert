@@ -12,7 +12,7 @@
   5) 그림            data/checks/<파일이름>.png  (음량 곡선 + 스펙트로그램 + 찾은 구간)
   6) 구간 목록       data/segments/<파일이름>.csv (start,end,label,note). 파일 전체를 덮는다.
                      구간 사이·앞 배경·나가고 들어오는 소리·수동 제외한 소리는 모두 같은 회차의 other
-  7) meta.csv        data/meta.csv에 이 파일의 줄이 있는지
+  7) sessions.csv    data/sessions.csv(회차 정보)에 이 파일의 줄이 있는지
   화면에 나온 내용은 data/checks/<파일이름>.txt에도 저장한다.
 
 녹음 순서 (2단계부터): 녹음 시작 → 가만히 30초 → 나가기 → 벨·노크 10번 → 들어오기 → 정지
@@ -179,7 +179,7 @@ def segments_table(events, dur):
 
 
 def check_meta(meta_path, file_name, info):
-    """meta.csv에 이 파일 줄이 있는지. (상태, 설명)"""
+    """sessions.csv에 이 파일 줄이 있는지. (상태, 설명)"""
     if not meta_path.exists():
         return False, f"{meta_path} 파일이 없음"
     with open(meta_path, encoding="utf-8-sig", newline="") as f:
@@ -257,7 +257,7 @@ def main():
     ap.add_argument("--other-until", type=float, default=None, help="이 시각 전에 시작한 소리는 other (나가기)")
     ap.add_argument("--other-from", type=float, default=None, help="이 시각 뒤에 시작한 소리는 other (들어오기)")
     ap.add_argument("--drop", type=str, default="", help="other로 돌릴 구간 번호, 쉼표로 (예: 3,4)")
-    ap.add_argument("--meta", type=Path, default=ROOT / "data" / "meta.csv")
+    ap.add_argument("--meta", type=Path, default=ROOT / "data" / "sessions.csv")
     ap.add_argument("--out-dir", type=Path, default=ROOT / "data", help="checks/, segments/를 만들 곳")
     args = ap.parse_args()
 
@@ -400,9 +400,9 @@ def main():
     n_cls = sum(1 for r in rows if r[2] == label and label != "other")
     out(f"[저장] 구간 목록: {seg_path} ({len(rows)}줄: {label} {n_cls}개, other {len(rows) - n_cls}개)")
 
-    # 7) meta.csv
+    # 7) sessions.csv
     meta_ok, meta_msg = check_meta(args.meta, name, info)
-    out(f"[{'통과' if meta_ok else '알림'}] meta.csv: {meta_msg}")
+    out(f"[{'통과' if meta_ok else '알림'}] sessions.csv: {meta_msg}")
 
     out("")
     out("결과: " + ("모두 통과" if ok_all and meta_ok else "확인할 것이 있음 (위의 [문제]/[경고]/[알림])"))

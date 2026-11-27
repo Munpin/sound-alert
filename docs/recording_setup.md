@@ -62,6 +62,7 @@
 - `data/meta.csv` 머리글: `file,class,source,group_id,split,place,background,phone_state,device,date,license,note`
   - 직접 녹음: `source=own`, `license=own`, `device=phone`, `split`은 비워 둔다.
   - 녹음 페이지 5번 칸 '전체 복사'로 그날 저장한 줄을 한 번에 옮길 수 있다.
+  - (2026-11-27 바뀜) 녹음 페이지가 만든 줄은 `data/sessions.csv`(회차 정보)에 붙인다. `data/meta.csv`는 `train/build_meta.py`가 모든 출처의 2초 창을 모아 자동으로 만든다.
 
 ## 5. 확인 녹음 결과
 

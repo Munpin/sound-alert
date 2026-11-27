@@ -10,3 +10,7 @@ dev.csv 전체 40966 Knock 270 분할 {'val': 44, 'train': 226}
 eval.csv 전체 10231 Knock 103 분할 {'eval': 103}
   같이 붙은 라벨 [('Door', 103), ('Domestic_sounds_and_home_sounds', 103), ('Wood', 26), ('Human_group_actions', 6), ('Rattle', 5), ('Tools', 4)]
   (참고) Doorbell 37
+
+# (추가) FSD50K.metadata.zip의 클립 정보로 Knock 라이선스·업로더 확인
+dev: Knock 270개, 라이선스 {'zero': 166, 'by': 81, 'by-nc': 20, 'sampling+': 3}, 업로더 94명 (가장 많은 업로더 [('Ligidium', 48)])
+eval: Knock 103개, 라이선스 {'by-nc': 12, 'by': 28, 'zero': 60, 'sampling+': 3}, 업로더 94명 (가장 많은 업로더 [('EFlexTheSoundDesigner', 3)])
