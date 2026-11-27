@@ -1,5 +1,11 @@
   [own] doorbell_1126_s01_desk_phone.wav: doorbell 10개, other 88개, split train
   [own] knock_1126_s02_desk_phone.wav: knock 10개, other 53개, split train
+  [own] 건너뜀(파일 또는 구간 목록 없음): siren_1127_s01_desk_phone.wav
+  [own] 건너뜀(파일 또는 구간 목록 없음): horn_1127_s02_desk_phone.wav
+  [own] 건너뜀(파일 또는 구간 목록 없음): baby_cry_1127_s03_desk_phone.wav
+  [own] 건너뜀(파일 또는 구간 목록 없음): siren_1127_s04_desk_phone.wav
+  [own] 건너뜀(파일 또는 구간 목록 없음): horn_1127_s05_desk_phone.wav
+  [own] 건너뜀(파일 또는 구간 목록 없음): baby_cry_1127_s06_desk_phone.wav
   [audioset] 뺀 것: {'저음질(대역폭 7 kHz 미만)': 6}
   own         161줄
   esc50      1998줄

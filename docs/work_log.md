@@ -372,8 +372,10 @@ python train/check_session.py data/raw/knock_1126_s02_desk_phone.wav --expect 10
 - `python train/build_meta.py` → 6,586줄 (`docs/logs/build_meta_1127e.txt`), `check_splits.py` → 여러 분할에 걸친 묶음 0개, 시험 A siren 30, horn 30, baby_cry 48, 없는 클래스 doorbell·knock·other (`docs/logs/check_splits_1127e.txt`)
 - 미확인: 소리 빠짐 원인, 직접 녹음·실시간 알림에도 생기는지. sessions.csv에 재녹음 6개 줄 아직 없음(배경 값 받으면 추가)
 
+- sessions.csv에 재녹음 6개 줄 추가(장소 desk·실제 침대, 배경 fan, 휴대폰 상태 desk, split 비움 — 창의 분할은 원본을 따름). align_rerecord.py 다시 실행해 장소·배경 칸 채움(결과 같음: 183 / 185), build_meta 6,586줄. 스피커 종류: 노트북 내장, 볼륨 %: 기록 없음(사용자가 기억 못 함)
+
 ## 다음 할 일
-- 2단계 남은 일(사용자): 초인종 검증·시험용 회차, 재녹음 6개의 sessions.csv 줄(배경)과 스피커 종류·볼륨
+- 2단계 남은 일(사용자): 초인종 검증·시험용 회차 (시험 A의 초인종·노크·그 외)
 - 설계서 7절 다음 단계 진행 (다음 단계 문서를 받으면)
 
 ## 남은 문제
