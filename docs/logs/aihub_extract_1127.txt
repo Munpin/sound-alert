@@ -1,0 +1,40 @@
+# python train/aihub.py extract  (실행: 2026-11-27 14:54)
+고른 조각 3707개 (2초 이상만, 상한 적용)
+  500/3707
+  1000/3707
+  제외: 8.도구/17.악기/8.도구_7503_1.wav 창이 너무 조용함 (-65.8 dBFS)
+  제외: 5.충격/10.발소리/5.충격_4275_1.wav 창이 너무 조용함 (-58.9 dBFS)
+  제외: 8.도구/17.악기/8.도구_8489_1.wav 창이 너무 조용함 (-60.5 dBFS)
+  1500/3707
+  2000/3707
+  2500/3707
+  3000/3707
+  3500/3707
+저장: 3681개 → data\raw_public\aihub\wav16k, 목록 data\raw_public\aihub\windows.csv
+제외: {'창이 너무 조용함': 26}
+
+== 2초 창: 클래스 × 분할 (묶음 수) ==
+  horn   train  600 ( 28)   val  150 (  2)   test  300 (  5)
+  siren  train  600 ( 67)   val  150 ( 14)   test   57 ( 15)
+  other  train 1376 (215)   val  148 ( 52)   test  300 ( 51)
+
+== 소분류 × 분할 ==
+  1.자동차/1.차량경적             train  300  val  103  test    8
+  1.자동차/2.차량사이렌            train  600  val  150  test   57
+  1.자동차/3.차량주행음            train  140  val   17  test   28
+  2.이륜자동차/4.이륜차경적          train  300  val   47  test  292
+  2.이륜자동차/5.이륜차주행음         train  140  val   17  test   32
+  5.충격/10.발소리              train  135  val   17  test   32
+  5.충격/11.가구소리             train  139  val   16  test   31
+  6.가전/12.청소기              train  137  val   17  test   31
+  6.가전/13.세탁기              train  135  val   17  test   31
+  7.동물/14.개                train  140  val    0  test   31
+  7.동물/15.고양이              train  140  val   15  test   22
+  8.도구/16.공구               train  137  val   16  test   31
+  8.도구/17.악기               train  133  val   16  test   31
+
+창 음량 대비(창 RMS − 조각의 조용한 10% 수준): 중앙값 10.4 dB, 3 dB 미만 190개 (계속 나는 소리)
+
+real	5m10.666s
+user	0m0.015s
+sys	0m0.015s

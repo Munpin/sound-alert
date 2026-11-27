@@ -56,7 +56,12 @@
     "split_ratios": {"train": 0.70, "val": 0.15, "test": 0.15},
     "split_seed": 0,
     "split_trials": 400,
-    "train_cap": {"horn": 600, "siren": 600, "other": 1400}
+    "train_cap": {"horn": 600, "siren": 600, "other": 1400},
+    "val_cap": {"horn": 150, "siren": 150, "other": 150},
+    "test_cap": {"horn": 300, "siren": 300, "other": 300},
+    "min_seg_sec": 2.0,
+    "min_window_dbfs": -55.0,
+    "select_seed": 0
   },
 
   "backbone": "mobilenet_v3_small",

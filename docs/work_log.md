@@ -206,7 +206,19 @@ python train/check_session.py data/raw/knock_1126_s02_desk_phone.wav --expect 10
 - soxr: 7,562 Hz까지 평평(−1 dB), 7.8 kHz −30.2 dB로 급하게 끊음
 - 휴대폰 확인 녹음 평균 스펙트럼도 7 kHz 위에서 완만하게 줄어듦(7.0k −7.4, 7.5k −14.3 dB, 2~5 kHz 기준)
 - 가정: PC 크롬과 안드로이드 크롬의 변환기가 같다(같은 Chromium 코드). 휴대폰에서 직접 백색 잡음 측정은 안 함(미확인)
-- 보고 후 결정 대기 (필터 적용 여부, 2초 미만 조각 처리)
+- **결정 (사용자 승인)**: 공개 데이터에 크롬 모양 필터를 씌움. 2초 미만 조각은 뺌
+
+**크롬 모양 필터** (`train/audio_prep.py`, 특성 곡선 `train/chrome_response.json`, 확인 `docs/logs/chrome_filter_verify_1127.txt`)
+- 1차: soxr로 16 kHz → 크롬 곡선 FIR(129탭). 0.5~7.5 kHz는 맞았으나(6~7.5 kHz 평균 차이 0.03 dB) 7.5~8 kHz는 soxr가 이미 끊어서 크롬보다 9~62 dB 작음 → 버림
+- 2차(사용): soxr로 48 kHz → 48 kHz에서 크롬 곡선 FIR(1023탭, 8 kHz 위는 kHz당 −40 dB) → 3개마다 1개. 크롬 실측과 차이: 0.5~7.8 kHz 평균 0.55 dB 이하(최대 1.83), 7.8~8.0 kHz 평균 1.64 dB(48k)·2.62 dB(44.1k)
+- 직접 녹음·재녹음에는 씌우지 않음(이미 크롬을 거침)
+
+**2-4. AI Hub 2초 창** (`python train/aihub.py extract` → `data/raw_public/aihub/wav16k/`, `windows.csv`, 출력 `docs/logs/aihub_extract_1127.txt`, 5분 11초)
+- 상한: 학습 horn 600·siren 600·other 1,400(AI Hub 몫), 검증 150, 시험 300 (검증·시험 상한은 문서에 없어 정함, config에서 바꿀 수 있음). 넘으면 소분류→묶음을 돌아가며 하나씩
+- 창: 조각 안에서 에너지가 가장 큰 2초, −55 dBFS 미만은 뺌(26개)
+- 고른 3,707개 → 저장 3,681개. 압축 CRC 오류 0개
+- horn 600/150/300, siren 600/150/57, other 1,376/148/300 (학습/검증/시험)
+- 한계: horn 검증은 묶음 2개뿐, 차량경적 시험 8개(2초 이상 조건 때문에 더 줄어듦), 개(dog) 검증 0개
 
 ## 다음 할 일
 - 설계서 7절 다음 단계 진행 (다음 단계 문서를 받으면)

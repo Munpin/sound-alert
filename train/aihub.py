@@ -3,6 +3,7 @@
 사용법
   python train/aihub.py list      # 2-1: 소분류 목록·개수, 라벨 칸 이름, 날짜·장소 묶음 수
   python train/aihub.py index     # 2-2·2-3: 후보 조각 표 + 묶음 단위 분할 → data/raw_public/aihub/index.csv
+  python train/aihub.py extract   # 2-4: 상한까지 고르고 휴대폰 모양 16 kHz 2초 창 → data/raw_public/aihub/wav16k/, windows.csv
 
 원본 위치는 train/config.json의 paths.aihub_zip_root.
 """
@@ -321,8 +322,128 @@ def report_index(rows):
     print(f"\n묶음 {len(gs)}개, 여러 분할에 걸친 묶음 {sum(1 for v in gs.values() if len(v) > 1)}개")
 
 
+# ---------------------------------------------------------------------------
+# 2-4: 고르기 + 2초 창 만들기
+# ---------------------------------------------------------------------------
+WIN_DIR = OUT_DIR / "wav16k"
+WINDOWS_CSV = OUT_DIR / "windows.csv"
+WIN_COLS = ["file", "member", "cls", "subcat", "group_id", "split", "win_start_sec", "seg_sec", "sample_rate",
+            "channels", "rms_dbfs", "contrast_db", "date", "urban", "district", "place"]
+
+
+def subcat_code(subcat):
+    return "s%02d" % int(subcat.rsplit("/", 1)[1].split(".")[0])
+
+
+def select_rows(rows):
+    """분할·클래스마다 상한까지. 넘으면 소분류를 돌아가며, 소분류 안에서는 묶음을 돌아가며 하나씩"""
+    import random
+    rng = random.Random(AH["select_seed"])
+    caps = {"train": AH["train_cap"], "val": AH["val_cap"], "test": AH["test_cap"]}
+    ok = [r for r in rows if float(r["seg_sec"]) >= AH["min_seg_sec"]]
+    chosen = []
+    for split in ["train", "val", "test"]:
+        for cls in ["horn", "siren", "other"]:
+            pool = [r for r in ok if r["split"] == split and r["cls"] == cls]
+            subs = collections.defaultdict(lambda: collections.defaultdict(list))
+            for r in pool:
+                subs[r["subcat"]][r["group_id"]].append(r)
+            queues = {}
+            for s, gs in subs.items():
+                glist = []
+                for g, items in sorted(gs.items()):
+                    rng.shuffle(items)
+                    glist.append(items)
+                rng.shuffle(glist)
+                queues[s] = glist
+            cap, taken = caps[split][cls], []
+            while len(taken) < cap and any(queues.values()):
+                for s in sorted(queues):
+                    glist = queues[s]
+                    if not glist or len(taken) >= cap:
+                        continue
+                    items = glist.pop(0)          # 이 소분류의 다음 묶음에서 하나
+                    taken.append(items.pop(0))
+                    if items:
+                        glist.append(items)       # 묶음을 줄 뒤로 (돌아가며)
+            chosen += taken
+    return chosen
+
+
+def _make_window(job):
+    """작업자: zip에서 읽어(CRC 자동 검사) 휴대폰 모양 16 kHz로 바꾸고 2초 창 저장"""
+    import numpy as np
+    from audio_prep import best_window, frame_rms_db, parse_wav, to_phone_16k, write_wav16
+    r = job
+    try:
+        zf = _ZCACHE.setdefault(r["zip"], zipfile.ZipFile(ZIP_ROOT / r["zip"]))
+        if "names" not in _ZCACHE:
+            _ZCACHE["names"] = {}
+        names = _ZCACHE["names"].setdefault(r["zip"], {real_name(i): i for i in zf.infolist()})
+        data = zf.read(names[r["member"]])            # CRC가 다르면 BadZipFile 예외
+        x, sr = parse_wav(data)
+        y = to_phone_16k(x, sr)
+        bw = best_window(y, 2.0)
+        if bw is None:
+            return r, None, "2초보다 짧음(변환 후)"
+        i, rms = bw
+        if rms < AH["min_window_dbfs"]:
+            return r, None, f"창이 너무 조용함 ({rms:.1f} dBFS)"
+        contrast = rms - float(np.percentile(frame_rms_db(y), 10))
+        stem = r["member"].rsplit("/", 1)[1].rsplit(".", 1)[0].split("_", 1)[1]
+        fname = f"aihub_{subcat_code(r['subcat'])}_{stem}.wav"
+        write_wav16(WIN_DIR / fname, y[i:i + 32000])
+        return r, {"file": fname, "win_start_sec": round(i / 16000, 3), "rms_dbfs": round(rms, 2),
+                   "contrast_db": round(contrast, 2)}, None
+    except Exception as e:  # noqa: BLE001
+        return r, None, f"{type(e).__name__}: {e}"
+
+
+_ZCACHE = {}
+
+
+def cmd_extract():
+    import csv
+    from multiprocessing import Pool
+    rows = list(csv.DictReader(open(INDEX_CSV, encoding="utf-8")))
+    chosen = select_rows(rows)
+    print(f"고른 조각 {len(chosen)}개 (2초 이상만, 상한 적용)")
+    out, fails = [], collections.Counter()
+    with Pool(6) as pool:
+        for k, (r, res, err) in enumerate(pool.imap_unordered(_make_window, chosen, chunksize=8), 1):
+            if res is None:
+                fails[err.split(" (")[0]] += 1
+                if fails[err.split(" (")[0]] <= 3:
+                    print("  제외:", r["member"], err)
+            else:
+                out.append({**{c: r.get(c, "") for c in WIN_COLS}, **res})
+            if k % 500 == 0:
+                print(f"  {k}/{len(chosen)}")
+    out.sort(key=lambda d: (d["split"], d["cls"], d["file"]))
+    with open(WINDOWS_CSV, "w", encoding="utf-8", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=WIN_COLS)
+        w.writeheader()
+        w.writerows(out)
+    print(f"저장: {len(out)}개 → {WIN_DIR.relative_to(ROOT)}, 목록 {WINDOWS_CSV.relative_to(ROOT)}")
+    print(f"제외: {dict(fails)}")
+    print("\n== 2초 창: 클래스 × 분할 (묶음 수) ==")
+    for cls in ["horn", "siren", "other"]:
+        cells = []
+        for sp in ["train", "val", "test"]:
+            s = [d for d in out if d["cls"] == cls and d["split"] == sp]
+            cells.append(f"{sp} {len(s):4d} ({len({d['group_id'] for d in s}):3d})")
+        print(f"  {cls:6s} " + "   ".join(cells))
+    print("\n== 소분류 × 분할 ==")
+    for sub in sorted({d["subcat"] for d in out}):
+        c = collections.Counter(d["split"] for d in out if d["subcat"] == sub)
+        print(f"  {sub:24s} train {c['train']:4d}  val {c['val']:4d}  test {c['test']:4d}")
+    import numpy as np
+    con = np.array([d["contrast_db"] for d in out])
+    print(f"\n창 음량 대비(창 RMS − 조각의 조용한 10% 수준): 중앙값 {np.median(con):.1f} dB, 3 dB 미만 {int((con < 3).sum())}개 (계속 나는 소리)")
+
+
 if __name__ == "__main__":
-    cmds = {"list": cmd_list, "index": cmd_index}
+    cmds = {"list": cmd_list, "index": cmd_index, "extract": cmd_extract}
     if len(sys.argv) < 2 or sys.argv[1] not in cmds:
         print(__doc__)
         sys.exit(1)
