@@ -1,0 +1,8 @@
+# 재녹음 창 (data/meta.csv, source가 rerecord:로 시작) 2026-11-27
+baby_cry  test   48  출처 {'audioset': 25, 'esc50': 8, 'cryceleb': 15}  
+baby_cry  val    25  출처 {'esc50': 8, 'cryceleb': 17}  
+horn      test   30  출처 {'aihub': 22, 'esc50': 8}  소분류 {'2.이륜자동차/4.이륜차경적': 15, '1.자동차/1.차량경적': 7, 'car_horn': 8}
+horn      val    25  출처 {'aihub': 17, 'esc50': 8}  소분류 {'2.이륜자동차/4.이륜차경적': 13, '1.자동차/1.차량경적': 4, 'car_horn': 8}
+siren     test   30  출처 {'aihub': 22, 'esc50': 8}  
+siren     val    25  출처 {'aihub': 17, 'esc50': 8}  
+합계 183
