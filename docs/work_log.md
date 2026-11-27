@@ -43,7 +43,7 @@
 
 ### 2. 기록 정리 (CLAUDE.md 기록 규칙)
 
-- `docs/progress/report_w2_1203.md` 새로 만듦 (1단계-1 정리, 재설계 배경 포함)
+- `docs/progress/report_w3_1203.md` 새로 만듦 (1단계-1 정리, 재설계 배경 포함)
 - 숫자 출처를 파일로 남기려고 1단계-1 시험을 다시 돌려 출력을 `docs/logs/`에 저장
   - `docs/logs/check_recording_1126.txt`: `python train/check_wav.py data/raw/other_1126_s01_desk_phone.wav --out docs/figures/check_recording_1126.png` (이전과 같은 숫자)
   - `docs/logs/resample_test_1126.txt`: JS 변환 사인파 시험 (Node)
@@ -305,7 +305,7 @@ python train/check_session.py data/raw/knock_1126_s02_desk_phone.wav --expect 10
 
 **보고서 정리 중 발견**: 재녹음 흉내 시험(`docs/logs/rerecord_sim_1127.txt`)에 넣은 시계 차이 +40 ppm(122.5초 동안 4.9 ms)을 도구가 +0 ppm으로 잼. 신호음을 10 ms 단위로 찾아서 이 크기는 안 보임 → 시계 보정 동작은 미확인. 실제 재녹음 때 다시 확인
 - `check_splits.py` 그림: 0개 칸도 빨강으로 (초인종 학습 0이 초록으로 보이던 것 고침)
-- `docs/progress/report_w2_1203.md`에 2단계(2.4~2.7, 결과, 문제, 결정, 핵심 숫자, 예상 질문) 추가
+- `docs/progress/report_w3_1203.md`에 2단계(2.4~2.7, 결과, 문제, 결정, 핵심 숫자, 예상 질문) 추가
 
 ### 2단계 결과 보고 후 수정 요청 1~6 (11/27)
 
@@ -343,7 +343,7 @@ python train/check_session.py data/raw/knock_1126_s02_desk_phone.wav --expect 10
 
 **다시 만들기**: `python train/build_meta.py` (출력 `docs/logs/build_meta_1127d.txt`) → 6,403줄 / `python train/check_splits.py --date 1127` (출력 `docs/logs/check_splits_1127d.txt`) → 묶음 2,629개, 여러 분할에 걸친 묶음 0개. 부족: doorbell val 0, test 0. 시험 A 0개
 
-**6. 보고서**: `docs/progress/report_w2_1203.md`에 2.8절(고친 것), 결과 표, 문제·결정, 핵심 숫자, 예상 질문 반영
+**6. 보고서**: `docs/progress/report_w3_1203.md`에 2.8절(고친 것), 결과 표, 문제·결정, 핵심 숫자, 예상 질문 반영
 
 **3. 휴대폰 크롬 변환 측정 결과** (입력 `data/raw/model_test_wasm_11270904.json`, 출력 `docs/logs/phone_resampler_1127.txt`, 그림 `docs/figures/phone_resampler_1127.png`)
 - 사용자가 휴대폰(SM-S928N, Android 16.0.0, Chrome 158.0.8127.42)에서 model-test 4번 측정 → json을 data/raw/에 넣음 (json은 받은 소리가 들어 있어 1.7 MB, 저장소에 안 올림)
@@ -419,6 +419,19 @@ python train/check_session.py data/raw/knock_1126_s02_desk_phone.wav --expect 10
    - 정렬 위치는 바뀌지 않음(같은 계산을 함수로 나눔). build_meta → 6,586줄, 분할 검사 통과
 3. 설계서 5절 증강 실험에 '끊김 넣기: 2초 창에 40~50 ms 끊김을 무작위로' 추가
 4. 설계서 메모: 알림 앱에도 빠짐 기록(mic.diagnostics)과 알림 목록을 같은 시계로 남겨 json으로 내려받게 → 오경보 측정 때 겹치는지 확인 (알림 화면 절, 측정 항목 오경보 줄)
+
+### 설계서 새 파일 반영과 주차 번호 (11/27)
+
+- 사용자가 `docs/design_v2.md`를 새로 바꿈 → 읽고 지금까지 작업과 비교: 맞지 않는 곳 4개 보고 → 사용자 결정으로 모두 고침
+- 노크 간격: 설계서대로 5초 간격(초인종 10초). 내일 노크 회차는 5초 간격으로 녹음
+- 주차 번호(설계서 1절): 1주차 = 주제·계획, 2주차 = 베이스라인(11/26), 3주차 = 지금(12/3), 4주차 = 12/10, 최종 12/17
+  - 보고서 `docs/progress/report_w2_1203.md` → `report_w3_1203.md`(git mv), 제목 '3주차 진도보고서', 본문 '1주차' → '2주차 베이스라인', 다음 주 '3주차 (12/4~10)' → '4주차'
+  - CLAUDE.md: 주차 구분 줄 추가, 일정·보고서 파일 이름(report_w3_1203, report_w4_1210)·재설계 배경 제목과 문장 고침
+  - 다른 문서의 파일 이름 참조 고침(설계서 5절, step1_3, step2, 작업 일지). 이 일지의 앞 기록에 나온 report_w2_1203도 새 이름으로 바꿔 둠
+- 설계서 8절 소리 빠짐 위험: 숫자를 로그와 맞춤(크롬 처리 시계 지연 3분에 0.02~0.13초, 덜 받은 소리 0.05~0.15초, 유튜브 0.52초 — `docs/logs/dropout_analysis_1127.txt`), 알아채는 법 '크롬 처리 시계와 실제 시간 비교'
+- 설계서 4절 원칙 3: '회차 앞 30초와 소리 사이 빈 시간을 그 외로' (지금 스크립트와 같음)
+- 녹음 페이지 휴대폰 상태 선택지에 shelf(선반 위) 추가 (`web/recorder.js` PHONE_STATES)
+- 설계서 9절 변경 기록에 4줄 추가. 앞으로 설계가 바뀌면 9절에도 날짜·내용을 적음(사용자 요청)
 
 ## 다음 할 일
 - 2단계 남은 일(사용자): 초인종 검증·시험용 회차 (시험 A의 초인종·노크·그 외)

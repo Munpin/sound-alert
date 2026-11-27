@@ -110,4 +110,4 @@ AI Hub 원본 압축의 위치(다운로드 폴더)는 `train/config.json`에 �
 - 클래스 × 분할 × 출처 개수 표와 부족한 칸
 - 위 "나에게 먼저 보고" 항목들의 결정 내용
 - 막힌 곳과 해결
-- 기록: `docs/work_log.md`, `docs/progress/report_w2_1203.md`
+- 기록: `docs/work_log.md`, `docs/progress/report_w3_1203.md`

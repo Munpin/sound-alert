@@ -63,5 +63,5 @@
 ## 6. 기록
 
 - `docs/work_log.md`: 과정과 숫자
-- `docs/progress/report_w2_1203.md`: 결과 표(백엔드별 속도, 모델 크기, 출력 차이), 휴대폰 화면 캡처
+- `docs/progress/report_w3_1203.md`: 결과 표(백엔드별 속도, 모델 크기, 출력 차이), 휴대폰 화면 캡처
 - `docs/recording_setup.md`: onnxruntime-web 버전, 백엔드

@@ -97,7 +97,7 @@ export function encodeWav(samples, sampleRate = TARGET_RATE) {
 // ---------------------------------------------------------------------------
 export const CLASSES = ['doorbell', 'knock', 'baby_cry', 'siren', 'horn', 'other'];
 export const PLACES = ['desk', 'bed', 'bath', 'entrance', 'kitchen', 'outside'];
-export const PHONE_STATES = ['desk', 'hand', 'blanket'];
+export const PHONE_STATES = ['desk', 'hand', 'blanket', 'shelf'];   // shelf: 선반 위 (11/27 추가)
 export const BACKGROUNDS = ['quiet', 'music', 'speech', 'fan', 'water', 'washer', 'tv', 'street', 'bus', 'walking'];
 export const DEVICE = 'phone';
 export const META_HEADER =
