@@ -40,6 +40,13 @@ class Capture16kProcessor extends AudioWorkletProcessor {
     this.outLen = 0;
     this.resample = Math.abs(this.inRate - this.outRate) > 0.5;
     if (this.resample) this.initResampler();
+    // 진단(소리 빠짐 원인 찾기, 2026-11-27): 처리 블록마다 currentFrame을 보고 기록만 한다. 소리는 바꾸지 않는다.
+    this.lastFrame = null;   // 앞 블록의 currentFrame
+    this.outTotal = 0;       // 지금까지 내보낸 16 kHz 샘플 수 (녹음 안 위치를 맞추는 데 씀)
+    this.started = false;    // 첫 입력이 들어왔는지 (그 전의 빈 블록은 마이크 연결 전이라 세지 않음)
+    this.emptyStart = null; this.emptyBlocks = 0;   // 빈 입력이 이어진 구간
+    this.zeroStart = null; this.zeroBlocks = 0;     // 0만 든 입력이 이어진 구간
+    this.blocks = 0;
   }
 
   // 윈도 싱크 저역통과 + 보간. 8 kHz(새 샘플레이트의 절반) 위 소리가 접혀 들어오지 않도록
@@ -79,6 +86,7 @@ class Capture16kProcessor extends AudioWorkletProcessor {
   }
 
   emit(v) {
+    this.outTotal++;
     this.out[this.outLen++] = v;
     if (this.outLen === this.chunkSize) {
       this.port.postMessage(this.out, [this.out.buffer]);
@@ -122,10 +130,39 @@ class Capture16kProcessor extends AudioWorkletProcessor {
     }
   }
 
+  diag(msg) { this.port.postMessage({ diag: true, frame: currentFrame, ctxTime: currentTime, outPos: this.outTotal, ...msg }); }
+
   process(inputs) {
+    const f = currentFrame, bs = 128;
+    if (this.lastFrame !== null && f - this.lastFrame !== bs) {
+      this.diag({ type: 'gap', gapFrames: f - this.lastFrame - bs });   // 처리 블록을 건너뜀
+    }
+    this.lastFrame = f;
+    this.blocks++;
+    if (this.blocks % Math.round(sampleRate / bs) === 0) this.diag({ type: 'tick' });   // 약 1초마다
     const input = inputs[0];
-    if (!input || input.length === 0) return true; // 아직 마이크가 연결되지 않음
+    if (!input || input.length === 0) {           // 입력이 비어 있음 (지금은 이 블록을 저장하지 않음)
+      if (this.started) {
+        if (this.emptyStart === null) { this.emptyStart = f; this.emptyBlocks = 0; }
+        this.emptyBlocks++;
+      }
+      return true; // 아직 마이크가 연결되지 않음
+    }
+    if (this.emptyStart !== null) {
+      this.diag({ type: 'empty', startFrame: this.emptyStart, blocks: this.emptyBlocks });
+      this.emptyStart = null;
+    }
+    this.started = true;
     const ch = input[0]; // channelCountMode 'explicit', 채널 1 → 브라우저가 모노로 섞어 준다
+    let allZero = true;
+    for (let i = 0; i < ch.length; i++) if (ch[i] !== 0) { allZero = false; break; }
+    if (allZero) {
+      if (this.zeroStart === null) { this.zeroStart = f; this.zeroBlocks = 0; }
+      this.zeroBlocks++;
+    } else if (this.zeroStart !== null) {
+      this.diag({ type: 'zeros', startFrame: this.zeroStart, blocks: this.zeroBlocks });
+      this.zeroStart = null;
+    }
     if (this.resample) {
       this.pushResample(ch);
     } else {
@@ -195,7 +232,29 @@ export async function openMicrophone({ onChunk, chunkSize = 800, forceJs = false
     channelInterpretation: 'speakers',
     processorOptions: { targetRate: TARGET_RATE, chunkSize },
   });
-  node.port.onmessage = (e) => onChunk && onChunk(e.data);
+  // 진단 기록: worklet이 보낸 사건 + 약 1초마다 크롬 마이크 통계(track.stats, 있으면) + 화면 상태
+  const diag = { startPerf: performance.now(), contextRate: context.sampleRate, events: [], ticks: [], stats: [], page: [] };
+  let received = 0;   // 메인 스레드가 받은 16 kHz 샘플 수
+  node.port.onmessage = (e) => {
+    const d = e.data;
+    if (d && d.diag) {
+      const ev = { ...d, perf: performance.now(), received };
+      delete ev.diag;
+      (d.type === 'tick' ? diag.ticks : diag.events).push(ev);
+      return;
+    }
+    received += d.length;
+    if (onChunk) onChunk(d);
+  };
+  const statsTimer = setInterval(() => {
+    const st = track.stats;
+    if (!st) return;
+    const o = { perf: performance.now(), received };
+    for (const k in st) { if (typeof st[k] === 'number') o[k] = st[k]; }
+    diag.stats.push(o);
+  }, 1000);
+  const onVis = () => diag.page.push({ perf: performance.now(), received, visibility: document.visibilityState });
+  document.addEventListener('visibilitychange', onVis);
 
   // 3) 연결: 마이크 → worklet → 음량 0 → 스피커
   //    (스피커 쪽에 이어 둬야 브라우저가 worklet을 계속 돌린다. 음량 0이라 소리는 나지 않는다.)
@@ -218,7 +277,35 @@ export async function openMicrophone({ onChunk, chunkSize = 800, forceJs = false
     contextRate: context.sampleRate,
     outputRate: TARGET_RATE,
     context,
+    /** 지금까지 메인 스레드가 받은 16 kHz 샘플 수 (녹음 시작·끝 위치를 적는 데 씀) */
+    get received() { return received; },
+    /** 진단 기록. from~to(받은 샘플 위치) 사이만 고르고, 녹음 안 초(recSec)를 붙인다 */
+    diagnostics(from = 0, to = Infinity, extra = {}) {
+      const sr = TARGET_RATE, ctxSr = context.sampleRate;
+      const inRange = (x) => x.outPos >= from && x.outPos <= to;
+      const ev = diag.events.filter(inRange).map((x) => ({ ...x, recSec: +((x.outPos - from) / sr).toFixed(3) }));
+      const ms = (frames) => (frames / ctxSr) * 1000;
+      const sum = (type, key) => ev.filter((x) => x.type === type).reduce((a, x) => a + (key === 'blocks' ? x.blocks * 128 : x.gapFrames), 0);
+      const ticks = diag.ticks.filter(inRange);
+      const stats = diag.stats.filter((x) => x.received >= from && x.received <= to);
+      const s0 = stats[0], s1 = stats[stats.length - 1];
+      const t0 = ticks[0], t1 = ticks[ticks.length - 1];
+      const summary = {
+        gapCount: ev.filter((x) => x.type === 'gap').length, gapMs: +ms(sum('gap')).toFixed(1),
+        emptyCount: ev.filter((x) => x.type === 'empty').length, emptyMs: +ms(sum('empty', 'blocks')).toFixed(1),
+        zeroCount: ev.filter((x) => x.type === 'zeros').length, zeroMs: +ms(sum('zeros', 'blocks')).toFixed(1),
+        // 벽시계(performance.now)가 흐른 시간 − 그동안 받은 샘플 길이. 양수면 그만큼 소리가 덜 들어옴
+        wallMinusSamplesMs: t0 && t1 ? +(((t1.perf - t0.perf) / 1000 - (t1.outPos - t0.outPos) / sr) * 1000).toFixed(1) : null,
+        ctxMinusSamplesMs: t0 && t1 ? +(((t1.ctxTime - t0.ctxTime) - (t1.outPos - t0.outPos) / sr) * 1000).toFixed(1) : null,
+        trackStatsAvailable: diag.stats.length > 0,
+        trackDroppedFramesDelta: s0 && s1 && 'totalFrames' in s0 && 'deliveredFrames' in s0
+          ? (s1.totalFrames - s1.deliveredFrames) - (s0.totalFrames - s0.deliveredFrames) : null,
+      };
+      return { summary, method, contextRate: ctxSr, events: ev, ticks, stats, page: diag.page.filter((x) => x.received >= from && x.received <= to), ...extra };
+    },
     async stop() {
+      clearInterval(statsTimer);
+      document.removeEventListener('visibilitychange', onVis);
       node.port.onmessage = null;
       try { source.disconnect(); node.disconnect(); mute.disconnect(); } catch (_) {}
       stream.getTracks().forEach((t) => t.stop());

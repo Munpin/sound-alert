@@ -397,12 +397,15 @@ const wake = new ScreenWakeLock((on, why) => {
   $('wakeText').textContent = '화면 켜 두기: ' + (on ? '켜짐' : '꺼짐') + (why ? ` (${why})` : '');
 });
 let pending = null; // 저장 안 한 녹음 { samples, blob, url, form, peak, clipped }
+let recStartPos = 0, recStartPerf = 0;   // 녹음 시작 때 받은 샘플 수, 시각 (진단 기록용)
 
 $('recBtn').onclick = async () => {
   if (recorder.active) { await stopRecording(); return; }
   if (!refreshName()) { alert('녹음 정보를 먼저 고쳐 주세요.'); return; }
   if (pending && !pending.saved && !confirm('저장하지 않은 녹음이 있습니다. 버리고 새로 녹음할까요?')) return;
   clearPending();
+  recStartPos = mic.received;          // 진단 기록과 녹음 위치를 맞추려고
+  recStartPerf = performance.now();
   recorder.start();
   $('clipBanner').classList.add('hidden');
   $('recBtn').textContent = '녹음 정지';
@@ -415,6 +418,11 @@ async function stopRecording() {
   const f = form();
   const peak = recorder.peak, clipped = recorder.clipped;
   const samples = recorder.stop();
+  const diagRec = mic ? mic.diagnostics(recStartPos, mic.received, {
+    recording: { samples: samples.length, seconds: samples.length / TARGET_RATE,
+                 wallSeconds: (performance.now() - recStartPerf) / 1000 },
+    device: deviceInfo, page: 'index', time: new Date().toISOString(),
+  }) : null;
   await wake.off();
   $('recBtn').textContent = '녹음 시작';
   $('recBtn').classList.remove('danger');
@@ -422,7 +430,7 @@ async function stopRecording() {
   $('timer').textContent = fmtTime(samples.length / TARGET_RATE);
 
   const blob = encodeWav(samples, TARGET_RATE);
-  pending = { samples, blob, url: URL.createObjectURL(blob), form: f, peak, clipped, saved: false };
+  pending = { samples, blob, url: URL.createObjectURL(blob), form: f, peak, clipped, saved: false, diag: diagRec };
   $('preview').src = pending.url;
   const { name, take } = uniqueFileName(baseName(f), savedNames());
   pending.name = name;
@@ -432,6 +440,7 @@ async function stopRecording() {
     ['형식', `wav, ${TARGET_RATE} Hz, 모노, 16비트 PCM`],
     ['최댓값', `${toDb(peak).toFixed(1)} dBFS`],
     ['잘림', clipped ? `<span class="bad">${clipped}개 샘플</span>` : '<span class="ok">없음</span>'],
+    ['진단 (소리 빠짐)', diagRec ? `블록 건너뜀 ${diagRec.summary.gapCount}번, 빈 입력 ${diagRec.summary.emptyCount}번 (${diagRec.summary.emptyMs} ms), 0 구간 ${diagRec.summary.zeroCount}번` : '-'],
   ].map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('');
   $('dupBanner').classList.toggle('hidden', take === 1);
   $('dupBanner').textContent = `같은 이름을 이미 저장해서 끝에 _t${take}를 붙였습니다.`;
@@ -455,6 +464,10 @@ $('saveBtn').onclick = () => {
   const { name } = uniqueFileName(baseName(pending.form), names);
   pending.name = name;
   downloadBlob(pending.blob, name);
+  if (pending.diag) {   // 같은 이름의 json (소리 빠짐 진단 기록)
+    const j = new Blob([JSON.stringify({ file: name, ...pending.diag }, null, 1)], { type: 'application/json' });
+    setTimeout(() => downloadBlob(j, name.replace(/\.wav$/, '.json')), 300);
+  }
   const line = metaRow({ file: name, ...pending.form });
   names.add(name);
   store.set('names', [...names]);

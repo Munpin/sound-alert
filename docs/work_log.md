@@ -374,6 +374,20 @@ python train/check_session.py data/raw/knock_1126_s02_desk_phone.wav --expect 10
 
 - sessions.csv에 재녹음 6개 줄 추가(장소 desk·실제 침대, 배경 fan, 휴대폰 상태 desk, split 비움 — 창의 분할은 원본을 따름). align_rerecord.py 다시 실행해 장소·배경 칸 채움(결과 같음: 183 / 185), build_meta 6,586줄. 스피커 종류: 노트북 내장, 볼륨 %: 기록 없음(사용자가 기억 못 함)
 
+### 소리 빠짐 원인 찾기 도구 (11/27, 사용자 요청: 원인 찾기 전에는 고치지 않음)
+
+- 코드에서 찾은 후보: `web/audio-input.js` worklet의 `if (!input || input.length === 0) return true;` — 처리 블록에 마이크 입력이 비어 오면 그 블록(16 kHz에서 128샘플 = 8 ms)을 저장하지 않고 넘어감. 5블록이면 40 ms로 재녹음에서 본 크기와 같음. 확인 전이라 고치지 않음
+- `web/audio-input.js`: worklet이 처리 블록마다 `currentFrame`을 보고 기록만 함(소리는 그대로)
+  - gap: 앞 블록과 128 프레임 넘게 차이(블록 건너뜀), empty: 입력이 빈 블록이 이어진 구간(마이크 연결 전은 제외), zeros: 입력이 0으로만 찬 구간, tick: 약 1초마다 currentFrame·currentTime·내보낸 샘플 수
+  - 메인 스레드: 받은 샘플 수, 약 1초마다 `track.stats`(크롬 마이크 통계: totalFrames, deliveredFrames 등, 있으면), 화면 보임/숨김
+  - `mic.diagnostics(from, to)`: 녹음 구간만 골라 녹음 안 초(recSec)와 요약(건너뜀·빈 입력·0 구간 횟수와 ms, 벽시계 − 받은 소리, 크롬이 버린 프레임 변화)
+- 녹음 페이지(`web/index.html`): wav 저장 때 같은 이름의 json도 저장, 결과 표에 진단 한 줄
+- 시험 페이지(`web/model-test.html`): 결과 json에 `micDiagnostics`
+- 새 페이지 `web/dropout-test.html`: 조건(음량 막대 켬/끔, 화면 밝기 최대/자동, 다른 앱 없음/유튜브) 고르고 3분(또는 1분) 자동 녹음 → 요약 표, wav + json 저장, 조건별 결과가 휴대폰에 쌓임(localStorage), 결과 표 복사
+  - 음량 막대 켬 = 녹음 페이지처럼 화면마다(requestAnimationFrame) 다시 그림, 끔 = 1초에 한 번만 화면 바꿈. 밝기와 유튜브는 사용자가 직접 맞추고 고름(웹페이지가 바꿀 수 없음)
+- PC 크롬(headless, 가짜 마이크) 확인: dropout-test 1분 → 건너뜀 0, 빈 입력 0, 크롬 버림 0, 벽시계 − 받은 소리 −8.4 ms(가짜 마이크는 0만 보내서 0 구간 119번). 녹음 페이지 4초 녹음 → 결과 표에 진단 줄 나옴. track.stats는 PC 크롬 158에서 읽힘
+- 휴대폰 결과: 미확인(사용자 측정 대기)
+
 ## 다음 할 일
 - 2단계 남은 일(사용자): 초인종 검증·시험용 회차 (시험 A의 초인종·노크·그 외)
 - 설계서 7절 다음 단계 진행 (다음 단계 문서를 받으면)

@@ -373,7 +373,10 @@ $('rsBtn').onclick = async () => {
 };
 
 // ---------- 5. 저장 ----------
-function resultText() { return JSON.stringify(result, null, 1); }
+function resultText() {
+  if (mic) result.micDiagnostics = mic.diagnostics(0, Infinity, { page: 'model-test' });   // 소리 빠짐 진단
+  return JSON.stringify(result, null, 1);
+}
 $('saveBtn').onclick = () => {
   const blob = new Blob([resultText()], { type: 'application/json' });
   const a = document.createElement('a');
