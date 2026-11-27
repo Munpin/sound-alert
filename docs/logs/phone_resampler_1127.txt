@@ -1,0 +1,14 @@
+# 크롬 16 kHz 변환 모양: 휴대폰 vs PC (입력 model_test_wasm_11270904.json)
+기기: SM-S928N Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/158.0.0.0 Mobile Safari/537.36
+컨텍스트 48000 Hz → 16000 Hz, 받은 길이 20.00초
+휴대폰      -1dB   6547 Hz  -3dB   6969 Hz  -6dB   7375 Hz  6.0k   -0.2  6.5k   -0.7  7.0k   -3.3  7.5k   -7.9  7.8k  -11.1
+PC 크롬    -1dB   6500 Hz  -3dB   6922 Hz  -6dB   7359 Hz  6.0k   -0.3  6.5k   -1.1  7.0k   -3.2  7.5k   -7.7  7.8k  -11.0
+
+== 휴대폰 − PC (dB) ==
+  0.5~6.0 kHz: 평균 차이  -0.01, 최대 |차이|   0.92
+  6.0~7.5 kHz: 평균 차이  -0.07, 최대 |차이|   0.68
+  7.5~7.8 kHz: 평균 차이   0.10, 최대 |차이|   1.07
+  7.8~8.0 kHz: 평균 차이   0.01, 최대 |차이|   0.29
+
+0.5~7.8 kHz 구간별 평균 차이 중 가장 큰 값: 0.10 dB (같은 PC에서 여러 번 재도 생기는 흔들림은 docs/logs/resampler_page_pc_1127.txt 참고)
+그림: docs\figures\phone_resampler_1127.png

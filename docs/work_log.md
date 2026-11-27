@@ -345,8 +345,16 @@ python train/check_session.py data/raw/knock_1126_s02_desk_phone.wav --expect 10
 
 **6. 보고서**: `docs/progress/report_w2_1203.md`에 2.8절(고친 것), 결과 표, 문제·결정, 핵심 숫자, 예상 질문 반영
 
+**3. 휴대폰 크롬 변환 측정 결과** (입력 `data/raw/model_test_wasm_11270904.json`, 출력 `docs/logs/phone_resampler_1127.txt`, 그림 `docs/figures/phone_resampler_1127.png`)
+- 사용자가 휴대폰(SM-S928N, Android 16.0.0, Chrome 158.0.8127.42)에서 model-test 4번 측정 → json을 data/raw/에 넣음 (json은 받은 소리가 들어 있어 1.7 MB, 저장소에 안 올림)
+- `python train/verify_phone_resampler.py data/raw/model_test_wasm_11270904.json --date 1127`
+- 컨텍스트 48000 → 16000 Hz, 20.00초. 휴대폰 −1/−3/−6 dB 6,547 / 6,969 / 7,375 Hz, PC(같은 계산) 6,500 / 6,922 / 7,359 Hz
+- 휴대폰 − PC 평균 차이: 0.5~6.0 kHz −0.01, 6.0~7.5 kHz −0.07, 7.5~7.8 kHz 0.10 dB → PC 재측정끼리 차이(0.17 dB)보다 작음
+- 결론: 휴대폰 크롬 = PC 크롬 변환. 공개 데이터 크롬 모양 필터는 그대로 씀
+- 메모: 같은 PC 파일(chrome_out_48000.f32)을 이 스크립트(앞부분을 자르지 않음)로 계산하면 −1 dB가 6,500 Hz. 예전 기록 6,375 Hz(compare_resample.py)와 조금 다름 — −1 dB 근처는 기울기가 완만해 잡음에 민감
+
 ## 다음 할 일
-- 2단계 남은 일(사용자): 휴대폰에서 model-test 4번 측정 → json을 data/raw/로, 스피커 재녹음, 초인종 검증·시험용 회차
+- 2단계 남은 일(사용자): 스피커 재녹음, 초인종 검증·시험용 회차
 - 설계서 7절 다음 단계 진행 (다음 단계 문서를 받으면)
 
 ## 남은 문제
