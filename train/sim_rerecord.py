@@ -70,6 +70,9 @@ def main():
             rec = Path(td) / "siren_1199_s99_desk_phone.wav"
             write_wav16(rec, z)
             truth = LEAD + starts * k
+            cuts_rec = []                                            # 빠진 시각 (녹음 기준, 빼기 전 앞쪽 빠짐 반영)
+            for n, c in enumerate(cuts):
+                cuts_rec.append(c - 0.05 * n)
             for c in cuts:                                           # 빠진 곳 뒤의 창은 50 ms 당겨짐
                 truth = np.where(truth > c, truth - 0.05, truth)
             # 고치기 전: 10 ms 단위 신호음
@@ -85,6 +88,14 @@ def main():
             idx = np.array([int(o["idx"]) - 1 for o in out])
             err_new = np.abs(got - truth[idx]) * 1000
             print(f"{ppm:+8.0f} {nd:4d} | {err_old.max():10.1f}ms | {err_new.max():10.2f}ms {err_new.mean():7.2f}ms {len(out):3d}/{len(starts)}")
+            # 창 안에서 빠졌는지: 정답 = 빠진 시각(녹음 기준)이 [창 시작, 창 끝] 안
+            win_s = truth[idx]
+            true_in = np.array([any(ws < c < ws + 2.0 for c in cuts_rec) for ws in win_s])
+            flag = np.array([o["drop_in_window"] for o in out])
+            hit = int(((flag == "1") & true_in).sum())
+            near = flag == "near"
+            print(f"         창 안 빠짐: 정답 {int(true_in.sum())}개 → '1' {hit}개 (잘못 표시 {int(((flag == '1') & ~true_in).sum())}개), "
+                  f"'1'+near로 잡은 정답 {int(((flag == '1') | near)[true_in].sum())}개, near {int(near.sum())}개 (그중 정답 아님 {int((near & ~true_in).sum())}개)")
 
 
 if __name__ == "__main__":

@@ -15,6 +15,8 @@
                  file은 data/ 아래 경로, win_start는 그 파일 안에서 2초 창이 시작하는 초
                  subclass: 원래 데이터의 소분류(AI Hub 소분류, ESC-50 category 등). 경적을 차량/이륜차로 나눠 점수를 낼 때 쓴다
                  orig_source: 소리의 원래 출처(재녹음이면 원본의 출처). 아기 울음을 출처별로 나눠 점수를 낼 때 쓴다
+                 drop_in_window: 재녹음 창 안에서 휴대폰 녹음 소리가 빠졌는지. 1 = 창 안, near = 빠진 곳 바로 옆 창(확실하지 않음),
+                                 0 = 아님, 빈칸 = 재녹음 아님. 빼고 채점하려면 1과 near를 뺀다 (align_rerecord.py)
 
 직접 녹음 → 2초 창
   - 소리 하나에 창 하나: 2초보다 길면 가장 큰 2초, 짧으면 소리를 가운데 두고 앞뒤는 같은 녹음 그대로
@@ -44,7 +46,7 @@ DATA = ROOT / "data"
 CFG = json.loads((ROOT / "train" / "config.json").read_text(encoding="utf-8"))
 M = CFG["meta"]
 COLS = ["file", "class", "subclass", "source", "orig_source", "group_id", "split", "place", "background", "phone_state",
-        "device", "date", "license", "note", "win_start"]
+        "device", "date", "license", "note", "win_start", "drop_in_window"]
 WIN = 2.0
 
 
@@ -118,7 +120,8 @@ def rerecord_rows(public):
                        source=f"rerecord:{r['orig_file']}", orig_source=r["orig_source"],
                        group_id=r["group_id"], split=r["split"], place=r["place"], background=r["background"],
                        phone_state=r["phone_state"], device="phone", date=r["date"], license=r["license"],
-                       note=f"재녹음 원본 {r['orig_source']}", win_start=0.0))
+                       note=f"재녹음 원본 {r['orig_source']}", win_start=0.0,
+                       drop_in_window=r.get("drop_in_window", "")))
     return out
 
 

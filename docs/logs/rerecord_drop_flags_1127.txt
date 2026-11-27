@@ -1,0 +1,8 @@
+# 재녹음 창 drop_in_window (data/meta.csv) 2026-11-27
+baby_cry  test   48개: 0 34, 1 7, near 7  → 1·near 빼면 34개
+baby_cry  val    25개: 0 23, 1 0, near 2  → 1·near 빼면 23개
+horn      test   30개: 0 28, 1 1, near 1  → 1·near 빼면 28개
+horn      val    25개: 0 23, 1 1, near 1  → 1·near 빼면 23개
+siren     test   30개: 0 28, 1 0, near 2  → 1·near 빼면 28개
+siren     val    25개: 0 25, 1 0, near 0  → 1·near 빼면 25개
+합계 183개: 0 161, 1 9, near 13

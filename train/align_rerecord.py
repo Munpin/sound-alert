@@ -21,6 +21,10 @@
   가운데값으로 잰다. 첫 구간은 시작 신호음 위치를 그대로 쓴다(샘플 단위). 단, 첫 구간부터 20 ms 넘게
   어긋나 있으면(시작 신호음 도중에 소리가 빠진 경우, horn_1127_s02) 맞춰 본 위치를 그대로 쓴다.
   창 음량이 무음 구간보다 10 dB 미만이거나 일치도가 0.6 미만이면 그 창은 쓰지 않는다(다시 녹음하지 않음).
+  창 안에서 빠졌는지(drop_in_window, 2026-11-27 사용자 요청: 나중에 빼고도 채점할 수 있게):
+  빠진 곳 앞뒤 창의 앞 끝[−0.5, 0.25초]과 뒤 끝[1.75, 2.5초]을 따로 맞춘다.
+  뒤 끝이 앞 끝보다 20 ms 넘게 당겨져 있으면 창 안에서 빠진 것(1). 빠진 곳 바로 앞뒤 창인데 확실하지 않으면
+  'near'(빠짐이 창 끝 가까이에 있거나 맞추기 어려움). 나머지는 0. 채점에서 빼려면 1과 near를 함께 뺀다.
   무음 구간 음량 = 그 녹음의 모든 창 앞 무음(창 시작 1.5~0.5초 전) 음량의 가운데값. 바로 앞 무음 하나만 보면
   그때 난 생활 소음 때문에 멀쩡한 창이 빠졌음(11/27).
 
@@ -51,7 +55,7 @@ DATA = ROOT / "data"
 RR = DATA / "raw" / "rerecord"
 INDEX = RR / "rerecord_index.csv"
 COLS = ["file", "cls", "group_id", "split", "orig_file", "orig_source", "phone_recording", "playlist", "idx", "place",
-        "background", "phone_state", "date", "license", "rec_start_sec", "shift_sec", "snr_db", "corr"]
+        "background", "phone_state", "date", "license", "rec_start_sec", "shift_sec", "snr_db", "corr", "drop_in_window"]
 
 
 def envelope(y, hop=160, win=400):
@@ -132,39 +136,71 @@ def find_tone_fine(env, coarse):
     return pos / SR - REF_OFFSET
 
 
-def track(y, t0, plist, playlist, hop=80, search=0.12, min_corr=0.6):
-    """창마다 재생 파일과 녹음의 음량 곡선을 맞춰 위치 차이(초)를 찾는다. 앞 창 위치에서 ±search 안에서만.
-    반환: [(위치 차이 초, 일치도, 옮겼는지)]"""
+HOP = 80   # 음량 곡선 간격 (5 ms)
+
+
+def envs(y, playlist):
+    """재생 파일(휴대폰 모양 16 kHz)과 녹음의 음량 곡선(dB, 5 ms 간격)"""
     def env5(v):
-        f = np.lib.stride_tricks.sliding_window_view(np.pad(v, (0, 320)), 320)[::hop]
+        f = np.lib.stride_tricks.sliding_window_view(np.pad(v, (0, 320)), 320)[::HOP]
         return 10 * np.log10((f ** 2).mean(axis=1) + 1e-10)
     play, psr = parse_wav((RR / "playlists" / f"{playlist}.wav").read_bytes())
     ep, er = env5(to_phone_16k(play[:, 0], psr)), env5(y)
-    floor = np.percentile(er, 5)
+    return ep, er, np.percentile(er, 5)
+
+
+def local_lag(E, t0, s0, s1, center, search):
+    """재생 파일 [s0, s1]초 구간을 녹음에서 center ± search 안에서 맞춤. 반환: (일치도, 위치 차이 초)"""
+    ep, er, floor = E
+    a0 = int(round(s0 * SR / HOP))
+    a = ep[a0:a0 + int(round((s1 - s0) * SR / HOP))]
+    a = np.maximum(a, a.max() - 40)
+    a = a - a.mean()
+    best = (-1.0, center)
+    for L in range(-int(search * SR / HOP), int(search * SR / HOP) + 1):
+        cand = center + L * HOP / SR
+        j = int(round((t0 + s0 + cand) * SR / HOP))
+        b = er[j:j + len(a)] if j >= 0 else np.array([])
+        if len(b) < len(a):
+            continue
+        b = np.maximum(b, floor)
+        b = b - b.mean()
+        c = float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-9))
+        if c > best[0]:
+            best = (c, cand)
+    return best
+
+
+def track(E, t0, plist, search=0.12, min_corr=0.6):
+    """창마다 [앞 무음 0.5초 + 창 2초 + 뒤 무음 0.5초]를 맞춰 위치 차이(초)를 찾는다. 앞 창 위치에서 ±search 안에서만.
+    반환: [(위치 차이 초, 일치도, 옮겼는지)]"""
     lag, out = 0.0, []
     for p in plist:
         s = float(p["start_sec"])
-        a0 = int(round((s - 0.5) * SR / hop))
-        a = ep[a0:a0 + int(3.0 * SR / hop)]
-        a = np.maximum(a, a.max() - 40)
-        a = a - a.mean()
-        best = (-1.0, lag)
-        for L in range(-int(search * SR / hop), int(search * SR / hop) + 1):
-            cand = lag + L * hop / SR
-            j = int(round((t0 + s - 0.5 + cand) * SR / hop))
-            b = er[j:j + len(a)] if j >= 0 else np.array([])
-            if len(b) < len(a):
-                continue
-            b = np.maximum(b, floor)
-            b = b - b.mean()
-            c = float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-9))
-            if c > best[0]:
-                best = (c, cand)
-        moved = best[0] >= min_corr
+        c, cand = local_lag(E, t0, s - 0.5, s + 2.5, lag, search)
+        moved = c >= min_corr
         if moved:
-            lag = best[1]
-        out.append((lag, best[0], moved))
+            lag = cand
+        out.append((lag, c, moved))
     return out
+
+
+def drop_inside(E, t0, plist, steps, cuts, thr=0.02, min_corr=0.6):
+    """빠진 곳(cuts) 앞뒤 창의 앞쪽·뒤쪽 절반 위치를 따로 맞춰, 창 안에서 빠졌는지 본다.
+    반환: {창 순번: '1' | 'near'} (없으면 0)"""
+    res = {}
+    for k in cuts:
+        old, new = steps[k - 1], steps[k]
+        mid, half = (old + new) / 2, abs(old - new) / 2 + 0.03
+        for w in (k - 1, k):
+            s = float(plist[w]["start_sec"])
+            ca, la = local_lag(E, t0, s - 0.5, s + 0.25, mid, half)
+            cb, lb = local_lag(E, t0, s + 1.75, s + 2.5, mid, half)
+            if ca >= min_corr and cb >= min_corr and la - lb > thr:
+                res[w] = "1"
+            else:
+                res.setdefault(w, "near")
+    return res
 
 
 def step_levels(raw, thr=0.02):
@@ -219,8 +255,12 @@ def align(recording, playlist, write=True):
           f"→ 시계 차이 {(ratio - 1) * 1e6:+.0f} ppm, 끝 쪽 보정 {(t1 - t0 - end_play) * 1000:+.1f} ms")
     if abs(ratio - 1) > 0.005:
         raise SystemExit("[실패] 시계 차이가 0.5%를 넘음: 신호음을 잘못 찾았을 수 있음")
-    raw = track(y, t0, plist, playlist)
+    E = envs(y, playlist)
+    raw = track(E, t0, plist)
     steps, cuts = step_levels(raw)
+    inside = drop_inside(E, t0, plist, steps, cuts)
+    print(f"창 안에서 빠짐: {[int(plist[k]['idx']) for k, v in sorted(inside.items()) if v == '1']}, "
+          f"근처(near): {[int(plist[k]['idx']) for k, v in sorted(inside.items()) if v == 'near']}")
     lags = [(st_, c, m) for st_, (_, c, m) in zip(steps, raw)]
     print(f"따라가기: 소리가 빠진 곳 {len(cuts)}번 (창 번호 {[int(plist[k]['idx']) for k in cuts]}), "
           f"마지막 창은 시작 신호음 기준 {steps[-1] * 1000:+.1f} ms (끝 신호음 쪽 차이 {(t1 - t0 - end_play) * 1000:+.1f} ms)")
@@ -236,7 +276,7 @@ def align(recording, playlist, write=True):
     noise = float(np.median(gaps))
     print(f"무음 구간 음량(가운데값): {10 * np.log10(noise + 1e-12):.1f} dBFS")
     out, corrs, snrs, dropped = [], [], [], []
-    for p, (lag, lcorr, moved) in zip(plist, lags):
+    for w, (p, (lag, lcorr, moved)) in enumerate(zip(plist, lags)):
         st = t0 + float(p["start_sec"]) + lag
         i = int(round(st * SR))
         if i < 0 or i + int(WIN * SR) > len(y):
@@ -272,7 +312,8 @@ def align(recording, playlist, write=True):
                     "playlist": playlist, "idx": p["idx"], "place": sess.get("place", ""),
                     "background": sess.get("background", ""), "phone_state": sess.get("phone_state", ""),
                     "date": sess.get("date", ""), "license": p["license"], "rec_start_sec": round(st, 4),
-                    "shift_sec": round(lag, 4), "snr_db": round(snr, 1), "corr": round(corr, 3)})
+                    "shift_sec": round(lag, 4), "snr_db": round(snr, 1), "corr": round(corr, 3),
+                    "drop_in_window": inside.get(w, "0")})
     if write:
         old = [r for r in csv.DictReader(open(INDEX, encoding="utf-8"))] if INDEX.exists() else []
         old = [r for r in old if r["phone_recording"] != rec_name]
