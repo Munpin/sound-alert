@@ -170,6 +170,25 @@ python train/check_session.py data/raw/knock_1126_s02_desk_phone.wav --expect 10
 - **1단계-3 완료 기준 4개 모두 통과 (wasm)**
 - WebGPU 파일 뺌 (사용자 결정): `web/vendor/`의 ort.webgpu.min.mjs, ort-wasm-simd-threaded.asyncify.{mjs,wasm} 삭제(약 29 MB), 시험 페이지의 WebGPU 버튼 삭제. 측정 결과는 `docs/logs/model_test_phone_webgpu_1126.json`에 남음
 
+## 2026-11-27 (금)
+
+### 1. 2단계 데이터 (진행 중, `docs/step2_data.md`)
+
+**0. 폴더**: `data/raw/rerecord/`, `data/raw_public/{esc50,aihub,cryceleb,audioset}/`, `data/segments/` 만듦. AI Hub 원본 압축 경로는 `train/config.json`의 `paths.aihub_zip_root`에만 적음(복사 안 함).
+
+**1. ESC-50**
+- `old_sound-alert/data/raw/esc50/ESC-50-master` → `data/raw_public/esc50/ESC-50-master` 복사 (2,011개, 847 MB, `diff -rq`로 원본과 같음 확인)
+- 파일 이름 두 번째 칸 = `src_file`(원본 클립 번호) 확인. 원본 클립(묶음) 1,524개
+- 여러 fold에 걸친 묶음 4개(파일 9개), 그중 여러 분할에 걸친 묶음 2개(파일 5개): 209698(fold 4·5, clock_alarm·clock_tick), 234879(fold 4·5, rooster·hen). 둘 다 other. 표 만들 때(8번) 한쪽으로 모음
+- 여러 종류(category)에 걸친 묶음 4개
+
+**2-1. AI Hub 목록** (`python train/aihub.py list` → `docs/logs/aihub_list_1127.txt`)
+- 소분류 24개: 교통소음 9, 생활소음 8, 사업장소음 7. 교통·생활 json 50,691개, json 하나에 소리 구간 하나
+- 라벨 칸: 날짜 `info.dateCreated`, 장소 `environment.urban`(시·도)·`district`(동)·`place`(도로변/건물내부 등 장소 종류), gps(소수 둘째 자리)
+- 샘플레이트 섞임: 44.1 kHz 47,739 / 48 kHz 2,919 / 22.05 kHz 23 / 32 kHz 9 / 8 kHz 1. 스테레오 10,910개
+- 차량경적은 날짜 7종, 날짜+시·도+동 묶음 32개(그중 20개가 AI Hub Training·Validation 양쪽에 있음)
+- 보고 후 결정 대기
+
 ## 다음 할 일
 - 설계서 7절 다음 단계 진행 (다음 단계 문서를 받으면)
 

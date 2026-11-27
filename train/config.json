@@ -30,6 +30,11 @@
     "norm_is_temporary": true
   },
 
+  "paths": {
+    "aihub_zip_root": "~/Downloads/데이터셋 모음/130.도시 소리 데이터/01.데이터",
+    "esc50_root": "data/raw_public/esc50/ESC-50-master"
+  },
+
   "backbone": "mobilenet_v3_small",
   "pretrained": "IMAGENET1K_V1"
 }

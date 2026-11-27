@@ -1,0 +1,106 @@
+# python train/aihub.py list  (실행: 2026-11-27 14:43)
+원본 위치: C:\Users\USER\Downloads\데이터셋 모음\130.도시 소리 데이터\01.데이터
+
+== 1) 소분류별 wav 개수 (원천 zip) ==
+소분류                           Training  Validation      합계    용량(GB)
+1.자동차/1.차량경적                      3189         399    3588      4.30
+1.자동차/2.차량사이렌                     1990         249    2239      3.09
+1.자동차/3.차량주행음                     1682         227    1909      4.85
+2.이륜자동차/4.이륜차경적                   4560         519    5079      2.70
+2.이륜자동차/5.이륜차주행음                  4735         498    5233      3.05
+3.항공기/6.비행기                       1761         191    1952      3.59
+3.항공기/7.헬리콥터                      3225         435    3660      2.85
+4.열차/8.기차                         2085         281    2366      3.44
+4.열차/9.지하철                        2372         245    2617      5.06
+5.충격/10.발소리                       3691         448    4139      3.56
+5.충격/11.가구소리                      3707         502    4209      2.60
+6.가전/12.청소기                       2433         102    2535     12.01
+6.가전/13.세탁기                       1863         120    1983      8.91
+7.동물/14.개                         2077         217    2294      7.39
+7.동물/15.고양이                       2016         274    2290      4.39
+8.도구/16.공구                        2216         172    2388      6.78
+8.도구/17.악기                        2078         132    2210      8.43
+9.공사장/18.항타기                      3036         133    3169     10.86
+9.공사장/19.파쇄기                      1799         173    1972      4.27
+9.공사장/20.콘크리트펌프                   2730          93    2823     12.20
+9.공사장/21.발전기                      2164         123    2287      7.83
+10.공장/22.절삭기                      1908         142    2050     10.52
+10.공장/23.송풍기                      2581         143    2724      8.27
+10.공장/24.압축기                      1880         197    2077      7.51
+
+== 2) 라벨 json 칸 이름과 예시 값 (TL_1 첫 파일) ==
+  info.description                         도시 소리 데이터
+  info.uri                                 https://www.aihub.or.kr
+  info.version                             1.0
+  info.year                                2021
+  info.contributor                         IMR
+  info.dateCreated                         2021-09-04
+  license.url                              https://www.aihub.or.kr
+  license.name                             CC 0
+  audio.fileName                           1.자동차_1.wav
+  audio.fileSize                           811478
+  audio.duration                           9.2
+  audio.fileFormat                         wav
+  audio.sampleRate                         44.1kHz
+  audio.bitRate                            705kbps
+  audio.recodingType                       Mono
+  environment.recordingTime                10:30
+  environment.dayNight                     주간
+  environment.urban                        서울특별시
+  environment.district                     혜화동
+  environment.place                        도로변
+  environment.areaUse                      상업지역
+  environment.weather                      맑음
+  environment.direction                    우
+  environment.distance                     10m
+  environment.obstacle                     없음
+  environment.acqMethod                    자연적
+  environment.acqType                      제작
+  environment.acqDevice                    갤럭시탭S6
+  environment.micClass                     무지향성
+  environment.gps.latitude                 37.5
+  environment.gps.longitude                127.02
+  annotations[].labelName                  1.자동차_1_1.wav
+  annotations[].area.start                 3.45
+  annotations[].area.end                   4.88
+  annotations[].categories.category_01     교통소음
+  annotations[].categories.category_02     자동차
+  annotations[].categories.category_03     차량경적
+  annotations[].subCategory                소형차경적
+  annotations[].soundQuality               정상
+  annotations[].decibel                    72
+
+== 3) 소분류별 json 수와 묶음 수 (Training+Validation 합침) ==
+   묶음 후보: date=info.dateCreated / district=environment.urban+district / place=environment.place
+   겹침 = 같은 묶음이 AI Hub Training과 Validation 양쪽에 있는 수
+소분류                            json     소리구간     총길이(시간) |       date   date+district   date+district+place
+1.자동차/1.차량경적                   3588     3588        12.7 |    7(겹침 5)       32(겹침 20)             34(겹침 20)
+1.자동차/2.차량사이렌                  2239     2239        12.5 |  41(겹침 12)       96(겹침 27)            105(겹침 28)
+1.자동차/3.차량주행음                  1909     1909        11.5 |    4(겹침 3)       42(겹침 27)             42(겹침 27)
+2.이륜자동차/4.이륜차경적                5079     5079        14.2 |    8(겹침 8)        18(겹침 9)              18(겹침 9)
+2.이륜자동차/5.이륜차주행음               5233     5233        14.5 |    4(겹침 3)       57(겹침 31)             59(겹침 31)
+3.항공기/6.비행기                    1952     1952        13.6 |  28(겹침 14)       93(겹침 46)            160(겹침 69)
+3.항공기/7.헬리콥터                   3660     3660        12.1 |    8(겹침 7)         9(겹침 7)               9(겹침 7)
+4.열차/8.기차                      2366     2366        11.7 |  57(겹침 41)       97(겹침 66)            102(겹침 68)
+4.열차/9.지하철                     2617     2617        14.6 |  56(겹침 37)      104(겹침 58)            111(겹침 58)
+5.충격/10.발소리                    4139     4139        13.5 |   10(겹침 8)       22(겹침 18)             23(겹침 18)
+5.충격/11.가구소리                   4209     4209        11.3 |    8(겹침 6)       18(겹침 11)             18(겹침 11)
+6.가전/12.청소기                    2535     2535        34.2 |  39(겹침 18)      103(겹침 42)            117(겹침 42)
+6.가전/13.세탁기                    1983     1983        23.6 |  44(겹침 16)       84(겹침 39)             87(겹침 39)
+7.동물/14.개                      2294     2294        15.2 |    4(겹침 4)         4(겹침 4)               5(겹침 5)
+7.동물/15.고양이                    2290     2290        11.8 |    6(겹침 5)         7(겹침 6)               7(겹침 6)
+8.도구/16.공구                     2388     2388        19.9 |  36(겹침 21)       77(겹침 42)             88(겹침 43)
+8.도구/17.악기                     2210     2210        24.2 |  27(겹침 14)       42(겹침 20)             44(겹침 20)
+
+== 4) 환경 칸 값 종류 (교통·생활소음 json 전체) ==
+  urban           36종: 서울특별시(23032), 고양시(6448), 광주광역시(4438), 수원시(3877), 인천광역시(3610), 안동시(3416), 양주시(1512), 안성시(744), 용인시(660), 부천시(380), 제주시(349), 대전광역시(333)
+  place            9종: 도로변(23868), 건물내부(23284), 빌딩사이(1819), 나대지(894), 옥상(556), 기타(141), 물가(80), 지하(35), 숲(14)
+  areaUse          6종: 주거지역(31126), 상업지역(12387), 종합병원지역(3761), 녹지지역(2662), 학교지역(731), 공업지역(24)
+  dayNight         2종: 주간(47333), 야간(3358)
+  acqDevice       80종: TASCAM DR-05X(25290), TASCAMDR-05X(8570), ZOOM H1N 보이스레코더 ASMR(2291), 갤럭시탭S6(2090), GalaxyTapS6Lite(1085), ZOOM H1N 보이스레코더 ASMR 핸디 녹음기 마이크(1022), Galaxy A31(930), 갤럭시탭s6(850), ZOOMH1N보이스레코더ASMR핸디녹음기마이크(738), 휴대폰(680), 갤럭시S6(603), 갤럭시 탭 S6 Lite(581)
+  acqMethod        2종: 자연적(40616), 인위적(10075)
+  distance        55종: 10m(12304), 5m(7845), 3m(5679), 4m(4395), 2m(3360), 1m(3267), 15m(2594), 6m(1687), 7m(1622), 28m(1175), 26m(965), 20m(727)
+  obstacle         4종: 없음(38550), 벽(11022), 창문(1042), 숲(77)
+  sampleRate       5종: 44.1kHz(47739), 48.0kHz(2919), 22.05kHz(23), 32.0kHz(9), 8.0kHz(1)
+  recodingType     2종: Mono(39781), Stereo(10910)
+  license          1종: CC 0(50691)
