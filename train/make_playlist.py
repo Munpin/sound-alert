@@ -14,7 +14,9 @@ meta.csv에서 고른 공개 데이터 2초 창들을 원본 음질(48 kHz)로 �
   python train/make_playlist.py --split test --cls siren --n 30
   python train/make_playlist.py --split val --cls baby_cry --n 25 --sources audioset,cryceleb,esc50
   python train/make_playlist.py --split test --cls baby_cry --n 50 --fill-order audioset,esc50,cryceleb
+  python train/make_playlist.py --split test --cls horn --n 30 --quota "2.이륜자동차/4.이륜차경적=15;1.자동차/1.차량경적=7;car_horn=8"
 
+--quota: 소분류(meta.csv subclass)마다 개수를 정한다. 경적은 차량(AI Hub 차량경적 + ESC-50 car_horn)과 이륜차를 반씩
 --fill-order: 앞 출처를 모두 넣고 모자란 만큼만 다음 출처로 채운다(출처 안에서는 묶음을 돌아가며).
   아기 울음 시험 재녹음은 AudioSet → ESC-50 → CryCeleb 순서 (2026-11-27 사용자 요청: 실제 영상 소리를 먼저)
 """
@@ -134,6 +136,17 @@ def pick_ordered(rows, n, seed, order):
     return out
 
 
+def pick_quota(rows, seed, quota):
+    """quota = {subclass: 개수}. 소분류마다 정한 개수만큼 (소분류 안에서는 묶음을 돌아가며)"""
+    out = []
+    for sub, k in quota.items():
+        got = pick([r for r in rows if r["subclass"] == sub], k, seed)
+        if len(got) < k:
+            print(f"[경고] {sub}: 후보가 모자라 {len(got)} / {k}개")
+        out += got
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--split", required=True, choices=["val", "test"])
@@ -143,12 +156,20 @@ def main():
     ap.add_argument("--name", default="")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--fill-order", default="", help="쉼표로 출처 순서 (앞 출처를 모두 넣고 모자란 만큼 다음 출처)")
+    ap.add_argument("--quota", default="", help="소분류=개수;소분류=개수 (meta.csv subclass 칸). 합이 --n이어야 함")
     args = ap.parse_args()
     order = [x for x in args.fill_order.split(",") if x]
+    quota = {k: int(v) for k, v in (x.rsplit("=", 1) for x in args.quota.split(";") if x)}
+    assert not quota or sum(quota.values()) == args.n, "--quota 합이 --n과 달라요"
     srcs = tuple(order) if order else (tuple(args.sources.split(",")) if args.sources else PUBLIC)
     rows = [r for r in csv.DictReader(open(DATA / "meta.csv", encoding="utf-8"))
             if r["split"] == args.split and r["class"] == args.cls and r["source"] in srcs]
-    chosen = pick_ordered(rows, args.n, args.seed, order) if order else pick(rows, args.n, args.seed)
+    if quota:
+        chosen = pick_quota(rows, args.seed, quota)
+    elif order:
+        chosen = pick_ordered(rows, args.n, args.seed, order)
+    else:
+        chosen = pick(rows, args.n, args.seed)
     if len(chosen) < args.n:
         print(f"[경고] 후보가 {len(rows)}개라 {len(chosen)}개만 고름")
     name = args.name or f"{args.cls}_{args.split}"

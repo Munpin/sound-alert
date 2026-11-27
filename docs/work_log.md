@@ -353,6 +353,13 @@ python train/check_session.py data/raw/knock_1126_s02_desk_phone.wav --expect 10
 - 결론: 휴대폰 크롬 = PC 크롬 변환. 공개 데이터 크롬 모양 필터는 그대로 씀
 - 메모: 같은 PC 파일(chrome_out_48000.f32)을 이 스크립트(앞부분을 자르지 않음)로 계산하면 −1 dB가 6,500 Hz. 예전 기록 6,375 Hz(compare_resample.py)와 조금 다름 — −1 dB 근처는 기울기가 완만해 잡음에 민감
 
+**6. 스피커 재녹음 재생 파일 6개** (`train/make_playlist.py`, 출력 `docs/logs/playlists_1127.txt`, 파일 `data/raw/rerecord/playlists/`)
+- `--quota` 옵션 추가: 소분류(subclass)마다 개수. 경적은 차량(AI Hub 차량경적 + ESC-50 car_horn)과 이륜차를 반씩
+- 시험: siren 30 (AI Hub 22 + ESC-50 8, 묶음 22), horn 30 (이륜차 15 + 차량경적 7 + car_horn 8, 묶음 12), baby_cry 50 (AudioSet 27 + ESC-50 8 + CryCeleb 15, 묶음 44)
+- 검증: siren 25 (AI Hub 17 + ESC-50 8, 묶음 20), horn 25 (이륜차 13 + 차량경적 4 + car_horn 8, 묶음 10), baby_cry 25 (ESC-50 8 + CryCeleb 17, 묶음 20). 검증 개수는 문서 20~30 중 25로 정함
+- 길이 합계: 123 + 123 + 203 + 103 × 3 = 758초(약 12.6분)
+- 시험용 흉내 재생 파일 sim_siren_test는 지움
+
 ## 다음 할 일
 - 2단계 남은 일(사용자): 스피커 재녹음, 초인종 검증·시험용 회차
 - 설계서 7절 다음 단계 진행 (다음 단계 문서를 받으면)

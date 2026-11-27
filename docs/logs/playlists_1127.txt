@@ -1,0 +1,6 @@
+재생 파일: data/raw/rerecord/playlists/siren_test.wav (123.0초, 창 30개, 출처 {'aihub': 22, 'esc50': 8}, 묶음 22개)
+재생 파일: data/raw/rerecord/playlists/horn_test.wav (123.0초, 창 30개, 출처 {'aihub': 22, 'esc50': 8}, 묶음 12개)
+재생 파일: data/raw/rerecord/playlists/baby_cry_test.wav (203.0초, 창 50개, 출처 {'audioset': 27, 'esc50': 8, 'cryceleb': 15}, 묶음 44개)
+재생 파일: data/raw/rerecord/playlists/siren_val.wav (103.0초, 창 25개, 출처 {'aihub': 17, 'esc50': 8}, 묶음 20개)
+재생 파일: data/raw/rerecord/playlists/horn_val.wav (103.0초, 창 25개, 출처 {'aihub': 17, 'esc50': 8}, 묶음 10개)
+재생 파일: data/raw/rerecord/playlists/baby_cry_val.wav (103.0초, 창 25개, 출처 {'esc50': 8, 'cryceleb': 17}, 묶음 20개)
