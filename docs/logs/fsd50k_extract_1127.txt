@@ -1,0 +1,6 @@
+  bz 1~60: exit 0
+  bz 61~120: exit 0
+  bz 121~180: exit 0
+  bz 181~240: exit 0
+  bz 241~270: exit 0
+꺼낸 wav 270 / 270

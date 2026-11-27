@@ -262,6 +262,21 @@ python train/check_session.py data/raw/knock_1126_s02_desk_phone.wav --expect 10
 - 신호음 시작을 20 ms 일찍 잡는 쏠림 → 분석 창 가운데 기준으로 고침
 - 최종 흉내 녹음 시험(시계 +40 ppm, 울림, 잡음 −55 dBFS): 30/30개, 정답 위치와 최대 8.7 ms·평균 6.4 ms, 앞 무음 대비 21.2 dB 이상
 
+**5. FSD50K 노크 처리** (`train/fsd50k.py`, 출력 `docs/logs/fsd50k_extract_1127.txt`, `docs/logs/fsd50k_windows_1127.txt`)
+- 다운로드: 처음 한 줄씩 받기가 느려 6개 조각을 동시에 이어받기(curl)로 다시 시작. 서버 속도 제한(합계 약 1.2 MB/s) 때문에 오래 걸림. 조각 6개 모두 끝(z01~z05 각 3,221,225,472 바이트, .zip 2,306,663,327 바이트)
+- `python train/fsd50k.py extract`: 반디집 명령줄로 Knock wav만 꺼냄 → 270 / 270개, 압축 오류 없음(exit 0)
+- `python train/fsd50k.py windows`: Knock 270개 → 창 176개. 2초 미만 94개를 뺌(AI Hub와 같은 결정). 너무 조용한 것 0개
+- 분할(올린 사람 단위): train 119개(29명), val 27개(20명), test 30개(22명)
+- 창 176개 라이선스: CC0 109, CC BY 49, CC BY-NC 16, Sampling+ 2
+- 메모: 분할 비율은 270개 기준으로 맞췄고, 2초 미만을 뺀 뒤 창 비율은 119:27:30
+
+**8. 표 다시 만들기** (출력 `docs/logs/build_meta_1127b.txt`, `docs/logs/check_splits_1127b.txt`, 그림 `docs/figures/data_counts_1127.png` 갱신)
+- `python train/build_meta.py` → meta.csv 5,917줄 (own 161, esc50 1,998, aihub 3,681, audioset 27, fsd50k 176)
+- `python train/check_splits.py --date 1127` → 묶음 2,003개, 여러 분할에 걸친 묶음 0개(통과)
+- 노크: train 143, val 35, test 38 (FSD50K 전에는 val 8, test 8)
+- 남은 부족 칸: doorbell test 0·val 0(직접 녹음 split 미정), baby_cry test 35 < 50, val 8 < 20. 시험 A 비어 있음
+- CryCeleb: 허깅페이스 토큰 아직 없음(다시 확인) → 사용자 로그인 대기
+
 ## 다음 할 일
 - 설계서 7절 다음 단계 진행 (다음 단계 문서를 받으면)
 
