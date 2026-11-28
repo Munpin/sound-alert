@@ -3,7 +3,7 @@
 [train] 11회차
   phone_1126_s01   doorbell  desk      + fan
   phone_1126_s02   knock     desk      + fan
-  phone_1128_s01   doorbell  entrance  + quiet
+  phone_1128_s01   doorbell  entrance  + water
   phone_1128_s02   doorbell  bath      + water
   phone_1128_s03   doorbell  entrance  + speech
   phone_1128_s04   doorbell  bed       + speech

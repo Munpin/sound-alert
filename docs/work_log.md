@@ -451,7 +451,7 @@ python train/check_session.py data/raw/knock_1126_s02_desk_phone.wav --expect 10
 **계획표**
 | 회차 | 클래스 | 분할 | 장소 | 배경 | 휴대폰 상태 | 간격 | 메모 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| s01 | doorbell | train | kitchen | quiet | shelf | 10초 | 냉장고 소리 그대로 |
+| s01 | doorbell | train | entrance | water | shelf | 10초 | 싱크대 물 |
 | s02 | doorbell | train | bath | water | shelf | 10초 | 문 닫고 세면대 물 |
 | s03 | doorbell | train | entrance | speech | shelf | 10초 | 유튜브 말소리 |
 | s04 | doorbell | train | bed | speech | blanket | 10초 | |
@@ -476,6 +476,7 @@ python train/check_session.py data/raw/knock_1126_s02_desk_phone.wav --expect 10
 - 조합 검사 스크립트 `train/check_combos.py` (kitchen = entrance로 봄, 직접 녹음 doorbell·knock만) → `python train/check_combos.py` (출력 `docs/logs/session_combos_1128.txt`): 검증·시험이 학습과 겹치는 조합 없음(통과). 회차 수 doorbell 학습 8·검증 2·시험 3, knock 학습 3·검증 1·시험 3
 - 바로잡음: 계획 설명의 "어제 s01·s02"는 11/26 녹음. 11/26 s02(노크 학습)는 책상+fan(책상+음악 아님)
 - 날씨: 비. 빗소리가 들리면 메모에 rain
+- 고침: s01 '부엌+조용함'은 부엌 = 현관이라 s08 '현관+조용함'과 같은 조합 → '현관+물소리(싱크대)'로 바꿈 (사용자 지적). 조합 검사 다시 → 겹침 0
 
 ## 다음 할 일
 - 2단계 남은 일(사용자): 초인종 검증·시험용 회차 (시험 A의 초인종·노크·그 외)

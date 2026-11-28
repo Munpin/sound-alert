@@ -163,7 +163,7 @@
 
 | 회차 | 클래스 | 분할 | 장소 | 배경 | 휴대폰 상태 | 간격 | 메모 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| s01 | doorbell | train | kitchen | quiet | shelf | 10초 | 냉장고 소리 그대로 |
+| s01 | doorbell | train | entrance | water | shelf | 10초 | 싱크대 물 |
 | s02 | doorbell | train | bath | water | shelf | 10초 | 문 닫고 세면대 물 |
 | s03 | doorbell | train | entrance | speech | shelf | 10초 | 유튜브 말소리 |
 | s04 | doorbell | train | bed | speech | blanket | 10초 | |
