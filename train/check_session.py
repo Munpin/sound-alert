@@ -31,6 +31,8 @@
   --other-until 40  이 시각(초)보다 먼저 시작한 소리는 other (나가는 소리)
   --other-from 150  이 시각(초) 뒤에 시작한 소리는 other (들어오는 소리)
   --drop 3,4        그림을 보고 벨·노크가 아니라고 판단한 구간 번호를 other로 돌린다
+  --split 52.7      찾은 구간을 이 시각(초)에서 둘로 자른다(쉼표로 여러 개). 나가며 문 닫는 소리 바로 뒤에
+                    붙은 노크처럼 묶여 버린 소리를 나눌 때 쓴다(11/28 추가). 번호는 자른 뒤 기준으로 다시 매겨진다
   처음 실행할 때는 옵션 없이 돌려 그림을 보고, 나가기·들어오기 시각을 넣어 다시 돌린다.
 """
 
@@ -257,6 +259,7 @@ def main():
     ap.add_argument("--other-until", type=float, default=None, help="이 시각 전에 시작한 소리는 other (나가기)")
     ap.add_argument("--other-from", type=float, default=None, help="이 시각 뒤에 시작한 소리는 other (들어오기)")
     ap.add_argument("--drop", type=str, default="", help="other로 돌릴 구간 번호, 쉼표로 (예: 3,4)")
+    ap.add_argument("--split", type=str, default="", help="찾은 구간을 이 시각(초)에서 둘로 자름, 쉼표로 (예: 52.7)")
     ap.add_argument("--meta", type=Path, default=ROOT / "data" / "sessions.csv")
     ap.add_argument("--out-dir", type=Path, default=ROOT / "data", help="checks/, segments/를 만들 곳")
     args = ap.parse_args()
@@ -328,6 +331,14 @@ def main():
         off = bg_frames * HOP / rate
         raw = [[max(0.0, s_ - off), e_ - off] for s_, e_ in raw if e_ - off > 0]
         found = pad_events(raw, 0.0, dur, rule)
+        for t in sorted(float(v) for v in args.split.replace(" ", "").split(",") if v):
+            hit = [k for k, (a_, b_) in enumerate(found) if a_ < t < b_]
+            if not hit:
+                raise SystemExit(f"--split {t}초가 찾은 구간 안에 없음")
+            k = hit[0]
+            a_, b_ = found[k]
+            found[k:k + 1] = [[a_, t], [t, b_]]
+            out(f"[정보] --split: {a_:.2f}~{b_:.2f}초 구간을 {t:.2f}초에서 둘로 자름")
         out(f"[정보] 배경 {bg_start:.1f}~{bg_end:.1f}초: 음량 중앙값 {th['bg_med']:.1f} dB, 상위 5% {th['bg_p95']:.1f} dB "
             f"→ 켜짐 기준 {th['on']:.1f} dB, 꺼짐 기준 {th['off']:.1f} dB")
         out(f"[정보] 묶기 규칙({cls}): {rule['merge_gap']}초 안의 소리는 하나로, {rule['min_dur']}초보다 짧으면 버림")
