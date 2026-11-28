@@ -65,6 +65,8 @@ def own_rows():
     out = []
     for s in rows_csv(DATA / "sessions.csv"):
         wav = DATA / "raw" / s["file"]
+        if not wav.exists() and (DATA / "raw" / "self_record" / s["file"]).exists():   # 11/28부터 직접 녹음은 self_record/에 둠
+            wav = DATA / "raw" / "self_record" / s["file"]
         seg = DATA / "segments" / (Path(s["file"]).stem + ".csv")
         if not wav.exists() or not seg.exists():
             print(f"  [own] 건너뜀(파일 또는 구간 목록 없음): {s['file']}")
@@ -84,7 +86,7 @@ def own_rows():
                 st = a + i / sr
             else:
                 st = min(max(0.0, (a + b) / 2 - WIN / 2), dur - WIN)
-            out.append(row(file=f"raw/{s['file']}", **{"class": s["class"]}, subclass=s["class"], note="",
+            out.append(row(file=str(wav.relative_to(DATA)).replace("\\", "/"), **{"class": s["class"]}, subclass=s["class"], note="",
                            win_start=round(st, 3), **base))
             n_cls += 1
         # other: 소리 앞뒤 보호 구간을 뺀 other 구간을 2초씩
@@ -102,7 +104,7 @@ def own_rows():
                         b = min(b, ba)
             t = a
             while t + WIN <= b + 1e-6:
-                out.append(row(file=f"raw/{s['file']}", **{"class": "other"}, subclass=f"own {r['note'] or 'gap'}",
+                out.append(row(file=str(wav.relative_to(DATA)).replace("\\", "/"), **{"class": "other"}, subclass=f"own {r['note'] or 'gap'}",
                                note=f"own other ({r['note'] or 'gap'})",
                                win_start=round(t, 3), **base))
                 t += WIN
