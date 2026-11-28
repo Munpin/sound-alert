@@ -1,0 +1,32 @@
+# 직접 녹음 회차 조합 검사 (장소, 배경). kitchen은 entrance와 같은 자리로 봄
+
+[train] 11회차
+  phone_1126_s01   doorbell  desk      + fan
+  phone_1126_s02   knock     desk      + fan
+  phone_1128_s01   doorbell  entrance  + quiet
+  phone_1128_s02   doorbell  bath      + water
+  phone_1128_s03   doorbell  entrance  + speech
+  phone_1128_s04   doorbell  bed       + speech
+  phone_1128_s05   doorbell  desk      + quiet
+  phone_1128_s06   doorbell  desk      + music
+  phone_1128_s07   doorbell  desk      + water
+  phone_1128_s08   knock     entrance  + quiet
+  phone_1128_s09   knock     desk      + speech
+
+[val] 3회차
+  phone_1128_s10   doorbell  bed       + quiet
+  phone_1128_s11   doorbell  bath      + speech
+  phone_1128_s12   knock     bath      + quiet
+
+[test] 6회차
+  phone_1128_s13   doorbell  entrance  + music
+  phone_1128_s14   doorbell  bath      + vent
+  phone_1128_s15   doorbell  bed       + music
+  phone_1128_s16   knock     bed       + music
+  phone_1128_s17   knock     bath      + vent
+  phone_1128_s18   knock     entrance  + music
+
+== 결과 ==
+  검증·시험이 학습과 겹치는 조합: 없음 (통과)
+
+회차 수: doorbell train 8, doorbell val 2, doorbell test 3, knock train 3, knock val 1, knock test 3

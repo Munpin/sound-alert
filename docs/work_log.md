@@ -433,6 +433,50 @@ python train/check_session.py data/raw/knock_1126_s02_desk_phone.wav --expect 10
 - 녹음 페이지 휴대폰 상태 선택지에 shelf(선반 위) 추가 (`web/recorder.js` PHONE_STATES)
 - 설계서 9절 변경 기록에 4줄 추가. 앞으로 설계가 바뀌면 9절에도 날짜·내용을 적음(사용자 요청)
 
+## 2026-11-28
+
+### 직접 녹음 계획: 9회차 → 18회차 (s01~s18)
+
+**늘린 이유** (사용자 정리, 검토 후 조합 3곳 고침)
+1. 초인종 학습 회차가 빠져 있었다. 처음 9회차 계획은 초인종 검증·시험만 있어서, 초인종 학습은 11/26 s01(10번)뿐이었다. 초인종은 공개 데이터가 없어 직접 녹음으로만 학습할 수 있다. 설계서 4절 목표(학습 60~80)를 채우려고 학습 7회차를 더했다.
+2. 상한 80번으로 잡았다. 교수님이 "모델에 맞는 양의 데이터"를 말씀하셨고, 초인종은 녹음이 쉬워 상한까지 채우는 게 안전하다. 충분한지는 3단계 학습 곡선으로 확인한다.
+3. 노크 시험이 부족했다. 휴대폰 녹음 노크 시험이 2회차(20번)면 목표 30에 못 미쳐 3회차로 늘렸다. 노크 학습에 세게·약하게를 모두 넣었다(시험에만 있는 세기가 없도록).
+4. 조합 규칙: 검증·시험 회차는 학습에 없던 (장소, 배경) 조합으로 짰다. 부엌은 현관 앞과 거의 같은 자리라 같은 장소로 본다.
+   - 처음 계획에서 검증 2회차(책상+말소리, 침대+말소리)가 학습과 겹쳐 화장실+말소리, 화장실+조용함으로 바꿨다.
+   - 학습 '부엌+음악'은 시험 '현관+음악'과 사실상 같아 '책상+음악'으로 바꿨다.
+   - 화장실 환풍기는 배경 값을 `vent`로 따로 적는다. 11/26 학습 회차의 `fan`(컴퓨터 팬)과 다른 소리다. 환풍기는 시험에만 둔다(처음 듣는 배경에서 시험).
+5. 시간 분리: 같은 날이라 학습은 오전, 검증은 낮, 시험은 저녁에 녹음한다.
+6. 회차 번호: 파일 이름에 날짜(1128)가 들어가 11/26 회차와 겹치지 않으므로 s01~s18. 신발장·화장실 선반은 휴대폰 상태 `shelf`.
+
+**계획표**
+| 회차 | 클래스 | 분할 | 장소 | 배경 | 휴대폰 상태 | 간격 | 메모 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| s01 | doorbell | train | kitchen | quiet | shelf | 10초 | 냉장고 소리 그대로 |
+| s02 | doorbell | train | bath | water | shelf | 10초 | 문 닫고 세면대 물 |
+| s03 | doorbell | train | entrance | speech | shelf | 10초 | 유튜브 말소리 |
+| s04 | doorbell | train | bed | speech | blanket | 10초 | |
+| s05 | doorbell | train | desk | quiet | desk | 10초 | |
+| s06 | doorbell | train | desk | music | desk | 10초 | |
+| s07 | doorbell | train | desk | water | desk | 10초 | 싱크대 물 |
+| s08 | knock | train | entrance | quiet | shelf | 5초 | 세게 |
+| s09 | knock | train | desk | speech | desk | 5초 | 약하게 |
+| s10 | doorbell | val | bed | quiet | blanket | 10초 | |
+| s11 | doorbell | val | bath | speech | shelf | 10초 | |
+| s12 | knock | val | bath | quiet | shelf | 5초 | 보통 |
+| s13 | doorbell | test | entrance | music | shelf | 10초 | |
+| s14 | doorbell | test | bath | vent | shelf | 10초 | 화장실 환풍기 |
+| s15 | doorbell | test | bed | music | blanket | 10초 | |
+| s16 | knock | test | bed | music | blanket | 5초 | 보통 |
+| s17 | knock | test | bath | vent | shelf | 5초 | 약하게, 화장실 환풍기 |
+| s18 | knock | test | entrance | music | shelf | 5초 | 세게 |
+
+**다 하면** (11/26 s01 초인종 학습·s02 노크 학습 포함): 초인종 학습 80 / 검증 20 / 시험 30, 노크(휴대폰 녹음) 학습 30 / 검증 10 / 시험 30 (노크 학습·검증에는 ESC-50, FSD50K가 더해짐)
+
+- 계획을 `data/sessions.csv`에 미리 넣음(note 앞에 '[계획, 녹음 전]', 녹음이 들어오면 회차 확인 결과로 바꿈)
+- 조합 검사 스크립트 `train/check_combos.py` (kitchen = entrance로 봄, 직접 녹음 doorbell·knock만) → `python train/check_combos.py` (출력 `docs/logs/session_combos_1128.txt`): 검증·시험이 학습과 겹치는 조합 없음(통과). 회차 수 doorbell 학습 8·검증 2·시험 3, knock 학습 3·검증 1·시험 3
+- 바로잡음: 계획 설명의 "어제 s01·s02"는 11/26 녹음. 11/26 s02(노크 학습)는 책상+fan(책상+음악 아님)
+- 날씨: 비. 빗소리가 들리면 메모에 rain
+
 ## 다음 할 일
 - 2단계 남은 일(사용자): 초인종 검증·시험용 회차 (시험 A의 초인종·노크·그 외)
 - 설계서 7절 다음 단계 진행 (다음 단계 문서를 받으면)
